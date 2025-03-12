@@ -1,9 +1,11 @@
 {
   "extends": "./node_modules/gts/tsconfig-google.json",
   "compilerOptions": {
+   "module": "NodeNext",
     "rootDir": ".",
     "outDir": "build",
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "moduleResolution": "nodenext",
   },
   "include": [
     "src/**/*.ts",
