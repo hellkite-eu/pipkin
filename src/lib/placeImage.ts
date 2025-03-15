@@ -42,23 +42,23 @@ export async function placeImage(
    if (scale === 'keep-ratio') {
       // TODO: handle case when box has a size equal to 0
       const ratio = Math.min(
-         position.size.x / image.width,
-         position.size.y / image.height,
+         position.size.width / image.width,
+         position.size.height / image.height,
       );
       image.scale(ratio);
    }
 
    if (scale === 'stretch') {
-      image.scaleToFit({w: position.size.x, h: position.size.y});
+      image.scaleToFit({w: position.size.width, h: position.size.height});
    }
 
    // TODO: debug mode -- render bounding boxes
    const xOffset =
       position.start.x +
-      computeOffsetFromAlignment(xAlignment, image.width, position.size.x);
+      computeOffsetFromAlignment(xAlignment, image.width, position.size.width);
    const yOffset =
       position.start.y +
-      computeOffsetFromAlignment(yAlignment, image.height, position.size.y);
+      computeOffsetFromAlignment(yAlignment, image.height, position.size.height);
 
    return bg.composite(image, xOffset, yOffset);
 }

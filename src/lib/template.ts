@@ -1,23 +1,32 @@
 import * as fs from 'fs';
 import {parse as parseCsv} from 'papaparse';
-import {HorizontalAlign, Jimp, loadFont, rgbaToInt, VerticalAlign} from 'jimp';
+import {Jimp, loadFont, rgbaToInt} from 'jimp';
 import camelCase from 'lodash.camelcase';
 import {
-   Alignment,
+   BoundingBox,
    CANVAS_BASELINE_MAPPING,
    DEFAULT_ALIGNMENT,
    FontType,
    ImageLayerOptions,
    ImageType,
    LayerPosition,
+   Size,
    TemplateOptions,
    TextLayerOptions,
 } from './types';
 import {placeImage} from './placeImage';
-import {SANS_32_BLACK, SANS_64_BLACK} from 'jimp/fonts';
-import {CanvasTextBaseline, createCanvas} from 'canvas';
+import {Canvas, createCanvas} from 'canvas';
 
-type LayerFn<EntryType> = (entry: EntryType) => Promise<ImageType>;
+type LayerFnContext = {
+   width: number;
+   height: number;
+   debugMode: boolean;
+};
+
+type LayerFn<EntryType> = (
+   entry: EntryType,
+   context: LayerFnContext,
+) => Promise<ImageType>;
 
 type TemplateLayerFn<EntryType extends Record<string, string>> = (
    template: Template<EntryType>,
@@ -41,6 +50,7 @@ export class Template<EntryType extends Record<string, string>> {
    private readonly layers: LayerFn<EntryType>[] = [];
    private readonly background: ImageType;
    private readonly fontRegistry: Record<string, FontType> = {};
+   private debugMode: boolean = false;
 
    // disallow constructor initialization
    private constructor(options: TemplateOptions) {
@@ -104,14 +114,21 @@ export class Template<EntryType extends Record<string, string>> {
       position: LayerPosition,
       options?: ImageLayerOptions,
    ): this {
-      return this.layer(async entry => {
+      const bg = this.shadowBackground();
+      return this.layer(async (entry, {debugMode, width, height}) => {
          const imagePath = entry[key];
-         return placeImage(
-            this.shadowBackground(),
-            imagePath,
-            position,
-            options,
-         );
+         const result = await placeImage(bg, imagePath, position, options);
+
+         // debug mode
+         if (debugMode) {
+            const debugImage = await this.drawBoundingBox(position, {
+               width,
+               height,
+            });
+            return debugImage.composite(result);
+         }
+
+         return result;
       });
    }
 
@@ -120,9 +137,21 @@ export class Template<EntryType extends Record<string, string>> {
       position: LayerPosition,
       options?: ImageLayerOptions,
    ): this {
-      return this.layer(async () =>
-         placeImage(this.shadowBackground(), path, position, options),
-      );
+      const bg = this.shadowBackground();
+      return this.layer(async (_, {debugMode, width, height}) => {
+         const result = await placeImage(bg, path, position, options);
+
+         // debug mode
+         if (debugMode) {
+            const debugImage = await this.drawBoundingBox(position, {
+               width,
+               height,
+            });
+            return debugImage.composite(result);
+         }
+
+         return result;
+      });
    }
 
    // TODO: extract all
@@ -150,14 +179,11 @@ export class Template<EntryType extends Record<string, string>> {
       position: LayerPosition,
       options?: TextLayerOptions,
    ): this {
-      return this.layer(async entry => {
+      return this.layer(async (entry, {debugMode, width, height}) => {
          const text = entry[key];
 
-         // Create a new canvas
-         const canvas = createCanvas(
-            this.background.width,
-            this.background.height,
-         );
+         // init canvas
+         const canvas = createCanvas(width, height);
          const ctx = canvas.getContext('2d');
 
          // handle alignment inside the bounding box
@@ -172,29 +198,75 @@ export class Template<EntryType extends Record<string, string>> {
          ctx.font = this.buildFontString(options?.font);
          ctx.fillStyle = options?.color ?? 'black';
          ctx.textAlign = xAlignment ?? DEFAULT_ALIGNMENT;
-         ctx.textBaseline = CANVAS_BASELINE_MAPPING[yAlignment ?? DEFAULT_ALIGNMENT];
+         ctx.textAlign = 'start';
+         ctx.textBaseline =
+            CANVAS_BASELINE_MAPPING[yAlignment ?? DEFAULT_ALIGNMENT];
 
          ctx.fillText(
             text,
             position.start.x,
             position.start.y,
-            position.size.x,
+            position.size.width,
          );
+         console.log(ctx.measureText(text));
 
-         // TODO: handle height overflow
-         return await Jimp.fromBitmap(
-            ctx.getImageData(0, 0, canvas.width, canvas.height),
-         );
+         const result = await this.canvasToImage(canvas);
+
+         // debug mode
+         if (debugMode) {
+            const debugImage = await this.drawBoundingBox(position, {
+               width,
+               height,
+            });
+            return debugImage.composite(result);
+         }
+
+         return result;
       });
    }
 
+   private async canvasToImage(canvas: Canvas): Promise<ImageType> {
+      const ctx = canvas.getContext('2d');
+      return Jimp.fromBitmap(
+         ctx.getImageData(0, 0, canvas.width, canvas.height),
+      );
+   }
+
+   // TODO: extract somewhere else
+   private async drawBoundingBox(
+      box: BoundingBox,
+      imageSize: Size,
+   ): Promise<ImageType> {
+      const canvas = createCanvas(imageSize.width, imageSize.height);
+      const ctx = canvas.getContext('2d');
+      ctx.strokeStyle = 'red';
+
+      ctx.strokeRect(box.start.x, box.start.y, box.size.width, box.size.height);
+
+      return this.canvasToImage(canvas);
+   }
+
+   async renderLayers(entry: EntryType): Promise<Array<ImageType>> {
+      // TODO: render bounding box when in debug mode
+      return Promise.all(
+         this.layers.map(layerFn => layerFn(entry, this.buildLayerContext())),
+      );
+   }
+
+   private buildLayerContext(): LayerFnContext {
+      return {
+         debugMode: this.debugMode,
+         width: this.background.width,
+         height: this.background.height,
+      };
+   }
+
    async render(entry: EntryType): Promise<ImageType> {
-      let acc = this.background;
-      for (const layerFn of this.layers) {
-         const layerRender = await layerFn(entry);
-         acc.composite(layerRender);
-      }
-      return acc;
+      const renderedLayers = await this.renderLayers(entry);
+      return renderedLayers.reduce(
+         (acc, layerRender) => acc.composite(layerRender),
+         this.background.clone(),
+      );
    }
 
    async renderAll(entries: Array<EntryType>): Promise<Array<ImageType>> {
@@ -212,5 +284,10 @@ export class Template<EntryType extends Record<string, string>> {
          });
          return Promise.all(parsedData.data.map(this.render));
       });
+   }
+
+   debug(): this {
+      this.debugMode = true;
+      return this;
    }
 }

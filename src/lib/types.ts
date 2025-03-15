@@ -1,4 +1,4 @@
-import { CanvasTextBaseline } from 'canvas';
+import {CanvasTextBaseline} from 'canvas';
 import {JimpInstance, loadFont} from 'jimp';
 
 export type ImageType = JimpInstance;
@@ -10,11 +10,17 @@ export type Point = {
    y: number;
 };
 
-export type LayerPosition = AlignmentProps &
-   ScaleProps & {
-      start: Point;
-      size: Point;
-   };
+export type Size = {
+   width: number;
+   height: number;
+};
+
+export type LayerPosition = AlignmentProps & ScaleProps & BoundingBox;
+
+export type BoundingBox = {
+   start: Point;
+   size: Size;
+};
 
 export type AlignmentProps = {
    /**
@@ -37,10 +43,10 @@ export type Alignment = 'start' | 'center' | 'end';
 export const DEFAULT_ALIGNMENT: Alignment = 'center';
 
 export const CANVAS_BASELINE_MAPPING: Record<Alignment, CanvasTextBaseline> = {
-   'start': 'top',
-   'center': 'middle',
-   'end': 'bottom',
-}
+   start: 'top',
+   center: 'middle',
+   end: 'bottom',
+};
 
 /**
  * Could be extended with 'x-stretch' and 'y-stretch'
@@ -62,6 +68,8 @@ export type ScaleProps = {
 
 export const toPoint = (x: number, y: number): Point => ({x, y});
 
+export const toSize = (w: number, h: number): Size => ({width: w, height: h});
+
 export type TemplateOptions = {
    height: number;
    width: number;
@@ -76,12 +84,12 @@ export type ImageLayerOptions = {
 export type TextLayerOptions = {
    font?: {
       // TODO: maybe add other sizes too
-      size?: { px: number };
+      size?: {px: number};
       family?: string;
       bold?: boolean;
       italic?: boolean;
-   },
-   color?: string,
+   };
+   color?: string;
    // TODO: font options
    // TODO: processor fn
 };

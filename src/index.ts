@@ -1,5 +1,5 @@
 import {Template} from './lib/template';
-import {toPoint} from './lib/types';
+import {toPoint, toSize} from './lib/types';
 
 type ExampleEntry = {
    name: string;
@@ -8,14 +8,20 @@ type ExampleEntry = {
 (async () => {
    const result = await Template.new<ExampleEntry>()
       .staticImageLayer('assets/luigi.png', {
-         start: toPoint(25, 25),
-         size: toPoint(400, 400),
+         start: toPoint(25, 150),
+         size: toSize(700, 700),
+         scale: 'stretch'
       })
       .textLayer('name', {
          start: toPoint(25, 100),
-         size: toPoint(400, 400),
+         size: toSize(700, 100),
+      }, {
+         font: {
+            size: { px: 44 }
+         }
       })
-      .render({name: 'LUIGI'});
+      // .debug()
+      .render({name: 'LUIGI LUIGI LUIGI LUIGI LUIGI LUIGI LUIGI LUIGI'});
 
    await result.write('test.png');
 })();
