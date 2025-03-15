@@ -4,15 +4,17 @@ import {Jimp, loadFont, rgbaToInt} from 'jimp';
 import camelCase from 'lodash.camelcase';
 import {
    BoundingBox,
-   CANVAS_BASELINE_MAPPING,
-   DEFAULT_ALIGNMENT,
    FontType,
    ImageLayerOptions,
    ImageType,
-   LayerPosition,
+   ImagePosition,
    Size,
    TemplateOptions,
    TextLayerOptions,
+   TextPosition,
+   DEFAULT_TEXT_ALIGNMENT_PROPS,
+   toSize,
+   toPoint,
 } from './types';
 import {placeImage} from './placeImage';
 import {Canvas, createCanvas} from 'canvas';
@@ -111,7 +113,7 @@ export class Template<EntryType extends Record<string, string>> {
 
    imageLayer(
       key: keyof EntryType,
-      position: LayerPosition,
+      position: ImagePosition,
       options?: ImageLayerOptions,
    ): this {
       const bg = this.shadowBackground();
@@ -134,7 +136,7 @@ export class Template<EntryType extends Record<string, string>> {
 
    staticImageLayer(
       path: string,
-      position: LayerPosition,
+      position: ImagePosition,
       options?: ImageLayerOptions,
    ): this {
       const bg = this.shadowBackground();
@@ -176,7 +178,7 @@ export class Template<EntryType extends Record<string, string>> {
 
    textLayer(
       key: keyof EntryType,
-      position: LayerPosition,
+      position: TextPosition,
       options?: TextLayerOptions,
    ): this {
       return this.layer(async (entry, {debugMode, width, height}) => {
@@ -186,38 +188,50 @@ export class Template<EntryType extends Record<string, string>> {
          const canvas = createCanvas(width, height);
          const ctx = canvas.getContext('2d');
 
-         // handle alignment inside the bounding box
-         const xAlignment =
-            position.xAlignment ?? position.alignment ?? DEFAULT_ALIGNMENT;
-         const yAlignment =
-            position.yAlignment ?? position.alignment ?? DEFAULT_ALIGNMENT;
-
          // TODO: Default font per template
          // TODO: Proper font loading
          // TODO: Move font loading out of the iterator function
          ctx.font = this.buildFontString(options?.font);
          ctx.fillStyle = options?.color ?? 'black';
-         ctx.textAlign = xAlignment ?? DEFAULT_ALIGNMENT;
-         ctx.textAlign = 'start';
+         ctx.textAlign =
+            position.alignment ?? DEFAULT_TEXT_ALIGNMENT_PROPS.alignment;
          ctx.textBaseline =
-            CANVAS_BASELINE_MAPPING[yAlignment ?? DEFAULT_ALIGNMENT];
+            position.baseline ?? DEFAULT_TEXT_ALIGNMENT_PROPS.baseline;
 
          ctx.fillText(
             text,
-            position.start.x,
-            position.start.y,
-            position.size.width,
+            position.anchor.x,
+            position.anchor.y,
+            position.maxWidth,
          );
-         console.log(ctx.measureText(text));
 
          const result = await this.canvasToImage(canvas);
 
          // debug mode
          if (debugMode) {
-            const debugImage = await this.drawBoundingBox(position, {
-               width,
-               height,
-            });
+            const textMetrics = ctx.measureText(text);
+            console.log('textMetrics', textMetrics);
+
+            // TODO: render max box as well
+
+            const debugImage = await this.drawBoundingBox(
+               {
+                  start: toPoint(
+                     position.anchor.x - textMetrics.actualBoundingBoxLeft,
+                     position.anchor.y - textMetrics.actualBoundingBoxAscent,
+                  ),
+                  size: toSize(
+                     textMetrics.actualBoundingBoxLeft +
+                        textMetrics.actualBoundingBoxRight,
+                     textMetrics.actualBoundingBoxDescent +
+                        textMetrics.actualBoundingBoxAscent,
+                  ),
+               },
+               {
+                  width,
+                  height,
+               },
+            );
             return debugImage.composite(result);
          }
 

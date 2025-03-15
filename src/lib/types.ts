@@ -1,4 +1,4 @@
-import {CanvasTextBaseline} from 'canvas';
+import {CanvasTextAlign, CanvasTextBaseline} from 'canvas';
 import {JimpInstance, loadFont} from 'jimp';
 
 export type ImageType = JimpInstance;
@@ -15,38 +15,63 @@ export type Size = {
    height: number;
 };
 
-export type LayerPosition = AlignmentProps & ScaleProps & BoundingBox;
+/**
+ * IMAGE
+ */
+
+export type ImagePosition = ImageAlignmentProps & ScaleProps & BoundingBox;
 
 export type BoundingBox = {
    start: Point;
    size: Size;
 };
 
-export type AlignmentProps = {
+export type Anchor = {
+   anchor: Point;
+};
+
+export type ImageAlignmentProps = {
    /**
     * Overridden by xAlignment and/or yAlignment if provided.
     * default `center`
     */
-   alignment?: Alignment;
+   alignment?: ImageAlignment;
    /**
     * default `center`
     */
-   xAlignment?: Alignment;
+   xAlignment?: ImageAlignment;
    /**
     * default `center`
     */
-   yAlignment?: Alignment;
+   yAlignment?: ImageAlignment;
 };
 
-export type Alignment = 'start' | 'center' | 'end';
+export type ImageAlignment = 'start' | 'center' | 'end';
 
-export const DEFAULT_ALIGNMENT: Alignment = 'center';
+export const DEFAULT_IMAGE_ALIGNMENT: ImageAlignment = 'center';
 
-export const CANVAS_BASELINE_MAPPING: Record<Alignment, CanvasTextBaseline> = {
-   start: 'top',
-   center: 'middle',
-   end: 'bottom',
+/**
+ * TEXT
+ */
+export type TextPosition = TextAlignmentProps & ScaleProps & Anchor & {
+   maxWidth?: number;
 };
+
+export type TextAlignmentProps = {
+   /**
+    * default `center`
+    */
+   alignment?: CanvasTextAlign;
+   /**
+    * default `center`
+    */
+   baseline?: CanvasTextBaseline;
+};
+
+export const DEFAULT_TEXT_ALIGNMENT_PROPS: Required<TextAlignmentProps> = {
+   alignment: 'center',
+   baseline: 'top',
+}
 
 /**
  * Could be extended with 'x-stretch' and 'y-stretch'

@@ -1,15 +1,15 @@
 import {Jimp} from 'jimp';
 import {
-   LayerPosition,
+   ImagePosition,
    ImageType,
    ImageLayerOptions,
    DEFAULT_SCALE_MODE,
-   Alignment,
-   DEFAULT_ALIGNMENT,
+   ImageAlignment,
+   DEFAULT_IMAGE_ALIGNMENT,
 } from './types';
 
 function computeOffsetFromAlignment(
-   alignment: Alignment,
+   alignment: ImageAlignment,
    size: number,
    boxSize: number,
 ): number {
@@ -26,16 +26,16 @@ export async function placeImage(
    // TODO: pass background size only
    bg: ImageType,
    imagePath: string,
-   position: LayerPosition,
+   position: ImagePosition,
    options?: ImageLayerOptions,
 ): Promise<ImageType> {
    const image = (await Jimp.read(imagePath)) as unknown as ImageType;
 
    // handle alignment inside the bounding box
    const xAlignment =
-      position.xAlignment ?? position.alignment ?? DEFAULT_ALIGNMENT;
+      position.xAlignment ?? position.alignment ?? DEFAULT_IMAGE_ALIGNMENT;
    const yAlignment =
-      position.yAlignment ?? position.alignment ?? DEFAULT_ALIGNMENT;
+      position.yAlignment ?? position.alignment ?? DEFAULT_IMAGE_ALIGNMENT;
 
    const scale = position.scale ?? DEFAULT_SCALE_MODE;
 

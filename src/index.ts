@@ -13,15 +13,17 @@ type ExampleEntry = {
          scale: 'stretch'
       })
       .textLayer('name', {
-         start: toPoint(25, 100),
-         size: toSize(700, 100),
+         anchor: toPoint(375, 100),
+         alignment: 'center',
+         baseline: 'top',
+         maxWidth: 700,
       }, {
          font: {
             size: { px: 44 }
          }
       })
-      // .debug()
-      .render({name: 'LUIGI LUIGI LUIGI LUIGI LUIGI LUIGI LUIGI LUIGI'});
+      .debug()
+      .render({name: 'LUIGI LUIGI LUIGI'});
 
    await result.write('test.png');
 })();
