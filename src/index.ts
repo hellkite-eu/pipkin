@@ -4,22 +4,13 @@ import { toPoint, toSize } from './lib/types/2d';
 type ExampleEntry = {
     title: string;
     subtitle: string;
-    image: string;
 };
 
 (async () => {
-    const result = await Template.new<ExampleEntry>()
-        .imageLayer(
-            'image',
-            {
-                start: toPoint(25, 225),
-                size: toSize(700, 700),
-                scale: 'stretch',
-            },
-            {
-                assetsPath: 'assets',
-            },
-        )
+    const result = await Template.new<ExampleEntry>({
+        defaultFontFamily: 'branela',
+        defaultAssetsPath: 'assets'
+    })
         .textLayer(
             'title',
             {
@@ -52,11 +43,21 @@ type ExampleEntry = {
             },
         )
         .font('assets/branela.otf', 'branela')
-        .defaultFont('branela')
+        .imageLayer(
+            'title',
+            {
+                start: toPoint(25, 225),
+                size: toSize(700, 700),
+                scale: 'stretch',
+            },
+            {
+                assetsPath: 'assets',
+                pathFn: (title: string): string => `${title.toLowerCase()}.png`
+            },
+        )
         .render({
             title: 'Luigi',
             subtitle: 'Forever Player 2',
-            image: 'luigi.png',
         });
 
     await result.write('assets/test.png');

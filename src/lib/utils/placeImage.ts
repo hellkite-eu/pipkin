@@ -1,6 +1,13 @@
 import { Jimp } from 'jimp';
 import path from 'path';
-import { ImageAlignment, ImageType, ImagePosition, ImageLayerOptions, DEFAULT_IMAGE_ALIGNMENT, DEFAULT_SCALE_MODE } from '../types/image';
+import {
+    ImageAlignment,
+    ImageType,
+    ImagePosition,
+    ImageLayerOptions,
+    DEFAULT_IMAGE_ALIGNMENT,
+    DEFAULT_SCALE_MODE,
+} from '../types/image';
 
 function computeOffsetFromAlignment(
     alignment: ImageAlignment,
@@ -22,9 +29,11 @@ export async function placeImage(
     imagePath: string,
     position: ImagePosition,
     options?: ImageLayerOptions,
+    defaultAssetsPath?: string,
 ): Promise<ImageType> {
-    const imageCompletePath = options?.assetsPath
-        ? path.join(options.assetsPath, imagePath)
+    const assetsPath = options?.assetsPath ?? defaultAssetsPath;
+    const imageCompletePath = assetsPath
+        ? path.join(assetsPath, imagePath)
         : imagePath;
     const image = (await Jimp.read(imageCompletePath)) as unknown as ImageType;
 

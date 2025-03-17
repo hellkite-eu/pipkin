@@ -9,18 +9,30 @@ import { buildFontString } from './utils/buildFontString';
 import { canvasToImage } from './utils/canvasToImage';
 import { drawBoundingBox } from './utils/drawBoundingBox';
 import { toPoint, toSize } from './types/2d';
-import { ImageType, ImagePosition, ImageLayerOptions, ImageAlignment, ScaleMode } from './types/image';
+import { ImageType, ImagePosition, ImageLayerOptions } from './types/image';
 import {
     TextPosition,
     TextLayerOptions,
-    TextAlignmentProps,
     DEFAULT_TEXT_ALIGNMENT_PROPS,
 } from './types/text';
 
-export type TemplateOptions = {
+type RequiredTemplateOptions = {
     height: number;
     width: number;
-    color?: number;
+    color: number;
+};
+
+type OptionalTemplateOptions = {
+    defaultFontFamily?: string;
+    defaultAssetsPath?: string;
+};
+
+export type TemplateOptions = RequiredTemplateOptions & OptionalTemplateOptions;
+
+const DEFAULT_TEMPLATE_OPTIONS: RequiredTemplateOptions = {
+    height: 1050,
+    width: 750,
+    color: rgbaToInt(255, 255, 255, 255),
 };
 
 export type LayerFnContext = {
@@ -38,24 +50,12 @@ export type TemplateLayerFn<EntryType extends Record<string, string>> = (
     template: Template<EntryType>,
 ) => Template<EntryType>;
 
-export type ShadowTemplateOptions = {
-    /**
-     * Create a shadow template with the same size as the original
-     */
-    copySize?: boolean;
-};
-
-const DEFAULT_TEMPLATE_OPTIONS: TemplateOptions = {
-    height: 1050,
-    width: 750,
-    color: rgbaToInt(255, 255, 255, 255),
-};
-
 export class Template<EntryType extends Record<string, string>> {
     private readonly layers: LayerFn<EntryType>[] = [];
     private readonly background: ImageType;
     private debugMode: boolean = false;
     private defaultFontFamily?: string;
+    private defaultAssetsPath?: string;
 
     // disallow constructor initialization
     private constructor(options: TemplateOptions) {
@@ -64,10 +64,12 @@ export class Template<EntryType extends Record<string, string>> {
             width: options.width,
             color: options.color,
         });
+        this.defaultFontFamily = options.defaultFontFamily;
+        this.defaultAssetsPath = options.defaultAssetsPath;
     }
 
     static new<EntryType extends Record<string, string>>(
-        options: TemplateOptions = DEFAULT_TEMPLATE_OPTIONS,
+        options?: Partial<TemplateOptions>,
     ): Template<EntryType> {
         return new Template({
             ...DEFAULT_TEMPLATE_OPTIONS,
@@ -76,15 +78,10 @@ export class Template<EntryType extends Record<string, string>> {
     }
 
     private shadowTemplate(
-        options?: ShadowTemplateOptions,
     ): Template<EntryType> {
         return Template.new({
-            ...(options?.copySize
-                ? {
-                      height: this.background.height,
-                      width: this.background.width,
-                  }
-                : DEFAULT_TEMPLATE_OPTIONS),
+            height: this.background.height,
+            width: this.background.width,
         });
     }
 
@@ -112,8 +109,8 @@ export class Template<EntryType extends Record<string, string>> {
     ): this {
         const bg = this.shadowBackground();
         return this.layer(async (entry, { debugMode, width, height }) => {
-            const imagePath = entry[key];
-            const result = await placeImage(bg, imagePath, position, options);
+            const imagePath = options?.pathFn ? options.pathFn(entry[key]) : entry[key];
+            const result = await placeImage(bg, imagePath, position, options, this.defaultAssetsPath);
 
             // debug mode
             if (debugMode) {
@@ -135,7 +132,7 @@ export class Template<EntryType extends Record<string, string>> {
     ): this {
         const bg = this.shadowBackground();
         return this.layer(async (_, { debugMode, width, height }) => {
-            const result = await placeImage(bg, path, position, options);
+            const result = await placeImage(bg, path, position, options, this.defaultAssetsPath);
 
             // debug mode
             if (debugMode) {
@@ -210,11 +207,6 @@ export class Template<EntryType extends Record<string, string>> {
         return this;
     }
 
-    defaultFont(fontFamily: string): this {
-        this.defaultFontFamily = fontFamily;
-        return this;
-    }
-
     async renderLayers(entry: EntryType): Promise<Array<ImageType>> {
         return Promise.all(
             this.layers.map(layerFn =>
@@ -245,14 +237,18 @@ export class Template<EntryType extends Record<string, string>> {
 
     async fromCsv(path: string): Promise<Array<ImageType>> {
         return new Promise(async (resolve, reject) => {
-            const fileContent = fs.readFileSync(path, 'utf8');
-            const parsedData = parseCsv<EntryType>(fileContent, {
-                header: true,
-                skipEmptyLines: true,
-                transformHeader: (header, index) =>
-                    camelCase(header ?? `header${index}`),
-            });
-            return Promise.all(parsedData.data.map(this.render));
+            try {
+                const fileContent = fs.readFileSync(path, 'utf8');
+                const parsedData = parseCsv<EntryType>(fileContent, {
+                    header: true,
+                    skipEmptyLines: true,
+                    transformHeader: (header, index) =>
+                        camelCase(header ?? `header${index}`),
+                });
+                resolve(Promise.all(parsedData.data.map(this.render)));
+            } catch (err) {
+                reject(err);
+            }
         });
     }
 

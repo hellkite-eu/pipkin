@@ -5,7 +5,9 @@ export type ImageType = JimpInstance;
 
 export type ImageLayerOptions = {
     assetsPath?: string;
-    // TODO: processor fn
+    pathFn?: (path: string) => string;
+    // TODO:
+    // processorFn?: (entry: EntryType, image: ImageType) => Promise<ImageType>;
 };
 
 export type ImagePosition = ImageAlignmentProps & ScaleProps & BoundingBox;
