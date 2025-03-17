@@ -77,8 +77,7 @@ export class Template<EntryType extends Record<string, string>> {
         });
     }
 
-    private shadowTemplate(
-    ): Template<EntryType> {
+    private shadowTemplate(): Template<EntryType> {
         return Template.new({
             height: this.background.height,
             width: this.background.width,
@@ -97,20 +96,28 @@ export class Template<EntryType extends Record<string, string>> {
         return this;
     }
 
-    templateLayer(fn: TemplateLayerFn<EntryType>): this {
-        const template = fn(this.shadowTemplate());
-        return this.layer(async entry => template.render(entry));
-    }
+    templateLayer = (fn: TemplateLayerFn<EntryType>): this =>
+        this.layer(entry => {
+            const template = fn(this.shadowTemplate());
+            return template.render(entry);
+        });
 
-    imageLayer(
+    imageLayer = (
         key: keyof EntryType,
         position: ImagePosition,
         options?: ImageLayerOptions,
-    ): this {
-        const bg = this.shadowBackground();
-        return this.layer(async (entry, { debugMode, width, height }) => {
-            const imagePath = options?.pathFn ? options.pathFn(entry[key]) : entry[key];
-            const result = await placeImage(bg, imagePath, position, options, this.defaultAssetsPath);
+    ): this =>
+        this.layer(async (entry, { debugMode, width, height }) => {
+            const imagePath = options?.pathFn
+                ? options.pathFn(entry[key])
+                : entry[key];
+            const result = await placeImage(
+                this.shadowBackground(),
+                imagePath,
+                position,
+                options,
+                this.defaultAssetsPath,
+            );
 
             // debug mode
             if (debugMode) {
@@ -123,16 +130,20 @@ export class Template<EntryType extends Record<string, string>> {
 
             return result;
         });
-    }
 
-    staticImageLayer(
+    staticImageLayer = (
         path: string,
         position: ImagePosition,
         options?: ImageLayerOptions,
-    ): this {
-        const bg = this.shadowBackground();
-        return this.layer(async (_, { debugMode, width, height }) => {
-            const result = await placeImage(bg, path, position, options, this.defaultAssetsPath);
+    ): this =>
+        this.layer(async (_, { debugMode, width, height }) => {
+            const result = await placeImage(
+                this.shadowBackground(),
+                path,
+                position,
+                options,
+                this.defaultAssetsPath,
+            );
 
             // debug mode
             if (debugMode) {
@@ -145,14 +156,13 @@ export class Template<EntryType extends Record<string, string>> {
 
             return result;
         });
-    }
 
-    textLayer(
+    textLayer = (
         key: keyof EntryType,
         position: TextPosition,
         options?: TextLayerOptions,
-    ): this {
-        return this.layer(async (entry, { debugMode, width, height }) => {
+    ): this =>
+        this.layer(async (entry, { debugMode, width, height }) => {
             const text = entry[key];
 
             // render image with text
@@ -200,27 +210,27 @@ export class Template<EntryType extends Record<string, string>> {
 
             return result;
         });
-    }
 
     font(path: fs.PathLike, name: string): this {
         registerFont(path.toString(), { family: name });
         return this;
     }
 
+    debug(): this {
+        this.debugMode = true;
+        return this;
+    }
+
     async renderLayers(entry: EntryType): Promise<Array<ImageType>> {
         return Promise.all(
             this.layers.map(layerFn =>
-                layerFn(entry, this.buildLayerContext()),
+                layerFn(entry, {
+                    debugMode: this.debugMode,
+                    width: this.background.width,
+                    height: this.background.height,
+                }),
             ),
         );
-    }
-
-    private buildLayerContext(): LayerFnContext {
-        return {
-            debugMode: this.debugMode,
-            width: this.background.width,
-            height: this.background.height,
-        };
     }
 
     async render(entry: EntryType): Promise<ImageType> {
@@ -236,7 +246,7 @@ export class Template<EntryType extends Record<string, string>> {
     }
 
     async fromCsv(path: string): Promise<Array<ImageType>> {
-        return new Promise(async (resolve, reject) => {
+        return new Promise((resolve, reject) => {
             try {
                 const fileContent = fs.readFileSync(path, 'utf8');
                 const parsedData = parseCsv<EntryType>(fileContent, {
@@ -245,15 +255,12 @@ export class Template<EntryType extends Record<string, string>> {
                     transformHeader: (header, index) =>
                         camelCase(header ?? `header${index}`),
                 });
-                resolve(Promise.all(parsedData.data.map(this.render)));
+                resolve(this.renderAll(parsedData.data));
             } catch (err) {
                 reject(err);
             }
         });
     }
-
-    debug(): this {
-        this.debugMode = true;
-        return this;
-    }
 }
+
+// TODO: Ledger of actions applied to the image like a logging feed

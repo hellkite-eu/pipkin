@@ -55,10 +55,7 @@ type ExampleEntry = {
                 pathFn: (title: string): string => `${title.toLowerCase()}.png`
             },
         )
-        .render({
-            title: 'Luigi',
-            subtitle: 'Forever Player 2',
-        });
+        .fromCsv("assets/data.csv");
 
-    await result.write('assets/test.png');
+    await Promise.all(result.map((r, index) => r.write(`assets/test-${index + 1}.png`)));
 })();
