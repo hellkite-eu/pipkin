@@ -58,7 +58,6 @@ export async function placeImage(
         image.scaleToFit({ w: position.size.width, h: position.size.height });
     }
 
-    // TODO: debug mode -- render bounding boxes
     const xOffset =
         position.start.x +
         computeOffsetFromAlignment(

@@ -166,6 +166,7 @@ export class Template<EntryType extends Record<string, string>> {
             const text = entry[key];
 
             // render image with text
+            // TODO: replace canvas with fabric for line wrapping and text boxing
             const canvas = createCanvas(width, height);
             const ctx = canvas.getContext('2d');
             ctx.font = buildFontString(options?.font, this.defaultFontFamily);
