@@ -1,5 +1,4 @@
-import { CanvasTextAlign, CanvasTextBaseline } from 'canvas';
-import { Point } from './2d';
+import { BoundingBox } from './image';
 
 export type TextLayerOptions = {
     font?: {
@@ -25,27 +24,22 @@ export type TextLayerOptions = {
     // TODO: processor fn
 };
 
-export type TextPosition = TextAlignmentProps &
-    Anchor & {
-        maxWidth?: number;
-    };
+export type TextPosition = TextAlignmentProps & BoundingBox;
 
 export type TextAlignmentProps = {
     /**
      * default `center`
      */
-    alignment?: CanvasTextAlign;
-    /**
-     * default `center`
-     */
-    baseline?: CanvasTextBaseline;
+    textAlign?:
+        | 'left'
+        | 'center'
+        | 'right'
+        | 'justify'
+        | 'justify-left'
+        | 'justify-center'
+        | 'justify-right';
 };
 
 export const DEFAULT_TEXT_ALIGNMENT_PROPS: Required<TextAlignmentProps> = {
-    alignment: 'center',
-    baseline: 'top',
-};
-
-export type Anchor = {
-    anchor: Point;
+    textAlign: 'center',
 };

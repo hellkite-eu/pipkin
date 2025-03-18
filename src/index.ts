@@ -15,10 +15,9 @@ type ExampleEntry = {
         .textLayer(
             'title',
             {
-                anchor: toPoint(375, 25),
-                alignment: 'center',
-                baseline: 'top',
-                maxWidth: 700,
+                start: toPoint(25, 25),
+                size: toSize(700, 700),
+                textAlign: 'center',
             },
             {
                 font: {
@@ -31,10 +30,9 @@ type ExampleEntry = {
         .textLayer(
             'subtitle',
             {
-                anchor: toPoint(375, 125),
-                alignment: 'center',
-                baseline: 'top',
-                maxWidth: 700,
+                start: toPoint(25, 125),
+                size: toSize(700, 700),
+                textAlign: 'center',
             },
             {
                 font: {
@@ -56,6 +54,7 @@ type ExampleEntry = {
                 pathFn: (title: string): string => `${title.toLowerCase()}.png`,
             },
         )
+        .debug()
         .fromCsv('assets/data.csv', {
             duplication: {
                 countField: 'copies',

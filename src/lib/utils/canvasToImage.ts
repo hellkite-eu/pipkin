@@ -1,8 +1,19 @@
-import { Canvas } from 'canvas';
 import { Jimp } from 'jimp';
 import { ImageType } from '../types/image';
+import * as fabric from 'fabric/node';
 
-export const canvasToImage = async (canvas: Canvas): Promise<ImageType> => {
-    const ctx = canvas.getContext('2d');
-    return Jimp.fromBitmap(ctx.getImageData(0, 0, canvas.width, canvas.height));
+export const canvasToImage = async (canvas: fabric.Canvas): Promise<ImageType> => {
+    const dataUrl = canvas.toDataURL({
+        format: 'png',
+        quality: 1,
+        multiplier: 1,
+    });
+    const image = await Jimp.read(
+        Buffer.from(dataUrl.split(',')[1], 'base64'),
+    );
+    return Jimp.fromBitmap({
+        data: image.bitmap.data,
+        width: image.bitmap.width,
+        height: image.bitmap.height
+    });
 };

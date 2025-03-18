@@ -2,13 +2,8 @@ import * as fs from 'fs';
 import { parse as parseCsv } from 'papaparse';
 import { Jimp, rgbaToInt } from 'jimp';
 import camelCase from 'lodash.camelcase';
-
 import { placeImage } from './utils/placeImage';
-import { createCanvas, registerFont } from 'canvas';
-import { buildFontString } from './utils/buildFontString';
-import { canvasToImage } from './utils/canvasToImage';
 import { drawBoundingBox } from './utils/drawBoundingBox';
-import { toPoint, toSize } from './types/2d';
 import { ImageType, ImagePosition, ImageLayerOptions } from './types/image';
 import {
     TextPosition,
@@ -17,6 +12,9 @@ import {
 } from './types/text';
 import { RenderOptions } from './types/render';
 import concat from 'lodash.concat';
+import * as fabric from 'fabric/node';
+import { canvasToImage } from './utils/canvasToImage';
+import { registerFont } from 'canvas';
 
 type RequiredTemplateOptions = {
     height: number;
@@ -167,55 +165,48 @@ export class Template<EntryType extends Record<string, string>> {
         this.layer(async (entry, { debugMode, width, height }) => {
             const text = entry[key];
 
-            // render image with text
-            // TODO: replace canvas with fabric for line wrapping and text boxing
-            const canvas = createCanvas(width, height);
-            const ctx = canvas.getContext('2d');
-            ctx.font = buildFontString(options?.font, this.defaultFontFamily);
-            ctx.fillStyle = options?.color ?? 'black';
-            ctx.textAlign =
-                position.alignment ?? DEFAULT_TEXT_ALIGNMENT_PROPS.alignment;
-            ctx.textBaseline =
-                position.baseline ?? DEFAULT_TEXT_ALIGNMENT_PROPS.baseline;
-            ctx.fillText(
-                text,
-                position.anchor.x,
-                position.anchor.y,
-                position.maxWidth,
-            );
-            const result = await canvasToImage(canvas);
+            // render text
+            const canvas = new fabric.Canvas(null, { width, height });
+            const textObject = new fabric.Textbox(text, {
+                left: position.start.x,
+                top: position.start.y,
+                width: position.size.width,
+                height: position.size.height,
+                fontSize: options?.font?.size ?? 16,
+                fontFamily:
+                    options?.font?.family ?? this.defaultFontFamily ?? 'Arial',
+                fontWeight: options?.font?.bold ? 'bold' : 'normal',
+                fontStyle: options?.font?.italic ? 'italic' : 'normal',
+                fill: options?.color ?? 'black',
+                textAlign:
+                    position.textAlign ??
+                    DEFAULT_TEXT_ALIGNMENT_PROPS.textAlign,
+                splitByGrapheme: true, // word wrapping
+            });
+            canvas.add(textObject);
 
             // debug mode
             if (debugMode) {
-                const textMetrics = ctx.measureText(text);
-                const debugImage = await drawBoundingBox(
-                    {
-                        start: toPoint(
-                            position.anchor.x -
-                                textMetrics.actualBoundingBoxLeft,
-                            position.anchor.y -
-                                textMetrics.actualBoundingBoxAscent,
-                        ),
-                        size: toSize(
-                            textMetrics.actualBoundingBoxLeft +
-                                textMetrics.actualBoundingBoxRight,
-                            textMetrics.actualBoundingBoxDescent +
-                                textMetrics.actualBoundingBoxAscent,
-                        ),
-                    },
-                    {
-                        width,
-                        height,
-                    },
-                );
-                return debugImage.composite(result);
+                const boundingBox = textObject.getBoundingRect();
+                const debugRect = new fabric.Rect({
+                    left: boundingBox.left,
+                    top: boundingBox.top,
+                    width: boundingBox.width,
+                    height: boundingBox.height,
+                    stroke: 'red',
+                    strokeWidth: 2,
+                    fill: 'transparent',
+                });
+                canvas.add(debugRect);
             }
 
-            return result;
+            return canvasToImage(canvas);
         });
 
     font(path: fs.PathLike, name: string): this {
-        registerFont(path.toString(), { family: name });
+        registerFont(path.toString(), {
+            family: name,
+        });
         return this;
     }
 
