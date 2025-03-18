@@ -15,6 +15,8 @@ import {
     TextLayerOptions,
     DEFAULT_TEXT_ALIGNMENT_PROPS,
 } from './types/text';
+import { RenderOptions } from './types/render';
+import concat from 'lodash.concat';
 
 type RequiredTemplateOptions = {
     height: number;
@@ -242,11 +244,44 @@ export class Template<EntryType extends Record<string, string>> {
         );
     }
 
-    async renderAll(entries: Array<EntryType>): Promise<Array<ImageType>> {
-        return Promise.all(entries.map(entry => this.render(entry)));
+    async renderAll(
+        entries: Array<EntryType>,
+        options?: RenderOptions<EntryType>,
+    ): Promise<Array<ImageType>> {
+        const results: Array<Array<ImageType>> = await Promise.all(
+            entries.map(
+                entry =>
+                    new Promise<Array<ImageType>>(resolve =>
+                        this.render(entry).then(image => {
+                            if (!options?.duplication) {
+                                return resolve([image]);
+                            }
+
+                            const copies = parseInt(
+                                entry[options.duplication.countField],
+                            );
+                            if (Number.isNaN(copies)) {
+                                return resolve([image]);
+                            }
+
+                            const deepCopy =
+                                options.duplication.deepCopy ?? false;
+                            return resolve(
+                                Array.from({ length: copies }, () =>
+                                    deepCopy ? image.clone() : image,
+                                ),
+                            );
+                        }),
+                    ),
+            ),
+        );
+        return concat(...results);
     }
 
-    async fromCsv(path: string): Promise<Array<ImageType>> {
+    async fromCsv(
+        path: string,
+        options?: RenderOptions<EntryType>,
+    ): Promise<Array<ImageType>> {
         return new Promise((resolve, reject) => {
             try {
                 const fileContent = fs.readFileSync(path, 'utf8');
@@ -256,7 +291,7 @@ export class Template<EntryType extends Record<string, string>> {
                     transformHeader: (header, index) =>
                         camelCase(header ?? `header${index}`),
                 });
-                resolve(this.renderAll(parsedData.data));
+                resolve(this.renderAll(parsedData.data, options));
             } catch (err) {
                 reject(err);
             }

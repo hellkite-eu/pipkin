@@ -4,12 +4,13 @@ import { toPoint, toSize } from './lib/types/2d';
 type ExampleEntry = {
     title: string;
     subtitle: string;
+    copies: string;
 };
 
 (async () => {
     const result = await Template.new<ExampleEntry>({
         defaultFontFamily: 'branela',
-        defaultAssetsPath: 'assets'
+        defaultAssetsPath: 'assets',
     })
         .textLayer(
             'title',
@@ -52,10 +53,16 @@ type ExampleEntry = {
             },
             {
                 assetsPath: 'assets',
-                pathFn: (title: string): string => `${title.toLowerCase()}.png`
+                pathFn: (title: string): string => `${title.toLowerCase()}.png`,
             },
         )
-        .fromCsv("assets/data.csv");
+        .fromCsv('assets/data.csv', {
+            duplication: {
+                countField: 'copies',
+            },
+        });
 
-    await Promise.all(result.map((r, index) => r.write(`assets/test-${index + 1}.png`)));
+    await Promise.all(
+        result.map((r, index) => r.write(`assets/test-${index + 1}.png`)),
+    );
 })();
