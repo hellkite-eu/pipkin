@@ -1,3 +1,4 @@
+import { Bundler } from './lib/bundler';
 import { Template } from './lib/template';
 import { toPoint, toSize } from './lib/types/2d';
 
@@ -5,6 +6,7 @@ type ExampleEntry = {
     title: string;
     subtitle: string;
     copies: string;
+    effect: string;
 };
 
 (async () => {
@@ -54,7 +56,19 @@ type ExampleEntry = {
                 pathFn: (title: string): string => `${title.toLowerCase()}.png`,
             },
         )
-        .debug()
+        .textLayer(
+            'effect',
+            {
+                start: toPoint(125, 950),
+                size: toSize(500, 150),
+                textAlign: 'center',
+            },
+            {
+                font: {
+                    size: 32,
+                },
+            },
+        )
         .fromCsv('assets/data.csv', {
             duplication: {
                 countField: 'copies',
@@ -62,6 +76,8 @@ type ExampleEntry = {
         });
 
     await Promise.all(
-        result.map((r, index) => r.write(`assets/test-${index + 1}.png`)),
+        Bundler.new()
+            .bundle(result)
+            .map((r, index) => r.write(`assets/test-${index + 1}.png`)),
     );
 })();

@@ -14,4 +14,10 @@ export type DuplicationOptions<EntryType extends Record<string, string>> = {
      * default false
      */
     deepCopy?: boolean;
+    /**
+     * Number of copies for each card that it will fallback
+     * when the countField is not valid
+     * default: 1
+     */
+    default?: number;
 }

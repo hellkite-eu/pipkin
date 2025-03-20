@@ -2,10 +2,15 @@
     "extends": "./node_modules/gts/tsconfig-google.json",
     "compilerOptions": {
         "module": "NodeNext",
+        "target": "ES6",
         "rootDir": ".",
         "outDir": "build",
         "esModuleInterop": true,
+        "declaration": true,
+        "emitDeclarationOnly": false,
+        "skipLibCheck": true,
         "moduleResolution": "nodenext"
     },
+    "exclude": ["node_modules", "build"],
     "include": ["src/**/*.ts", "test/**/*.ts"]
 }

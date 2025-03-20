@@ -22,10 +22,10 @@ type RequiredTemplateOptions = {
     color: number;
 };
 
-type OptionalTemplateOptions = {
-    defaultFontFamily?: string;
-    defaultAssetsPath?: string;
-};
+type OptionalTemplateOptions = Partial<{
+    defaultFontFamily: string;
+    defaultAssetsPath: string;
+}>;
 
 export type TemplateOptions = RequiredTemplateOptions & OptionalTemplateOptions;
 
@@ -227,7 +227,10 @@ export class Template<EntryType extends Record<string, string>> {
         );
     }
 
-    async render(entry: EntryType): Promise<ImageType> {
+    async render(
+        entry: EntryType,
+        options?: RenderOptions<EntryType>,
+    ): Promise<ImageType> {
         const renderedLayers = await this.renderLayers(entry);
         return renderedLayers.reduce(
             (acc, layerRender) => acc.composite(layerRender),
@@ -243,25 +246,27 @@ export class Template<EntryType extends Record<string, string>> {
             entries.map(
                 entry =>
                     new Promise<Array<ImageType>>(resolve =>
-                        this.render(entry).then(image => {
+                        this.render(entry, options).then(image => {
                             if (!options?.duplication) {
                                 return resolve([image]);
                             }
 
-                            const copies = parseInt(
+                            let copies = parseInt(
                                 entry[options.duplication.countField],
                             );
                             if (Number.isNaN(copies)) {
-                                return resolve([image]);
+                                copies = options.duplication.default ?? 1;
                             }
 
                             const deepCopy =
                                 options.duplication.deepCopy ?? false;
-                            return resolve(
-                                Array.from({ length: copies }, () =>
+                            return resolve([
+                                image,
+                                // no need to clone the first one as well
+                                ...Array.from({ length: copies - 1 }, () =>
                                     deepCopy ? image.clone() : image,
                                 ),
-                            );
+                            ]);
                         }),
                     ),
             ),
