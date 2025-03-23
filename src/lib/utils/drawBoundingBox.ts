@@ -7,7 +7,7 @@ export const drawBoundingBox = async (
     box: BoundingBox,
     imageSize: Size,
 ): Promise<ImageType> => {
-    const fabricCanvas = new fabric.Canvas(null, imageSize);
+    const fabricCanvas = new fabric.Canvas(undefined, imageSize);
     const boundingBox = new fabric.Rect({
         left: box.start.x,
         top: box.start.y,

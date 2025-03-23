@@ -12,6 +12,7 @@ export type ImageLayerOptions = {
 
 export type ImagePosition = ImageAlignmentProps & ScaleProps & BoundingBox;
 
+// TODO: keep properties in the open
 export type BoundingBox = {
     start: Point;
     size: Size;

@@ -1,4 +1,5 @@
 import { BoundingBox } from './image';
+import { ReplacementMap } from './replacement';
 
 export type TextLayerOptions = {
     font?: {
@@ -22,6 +23,7 @@ export type TextLayerOptions = {
     };
     color?: string;
     // TODO: processor fn
+    replacement?: ReplacementMap;
 };
 
 export type TextPosition = TextAlignmentProps & BoundingBox;

@@ -12,6 +12,6 @@ export const buildFontString = (
         fragments.push('italic');
     }
     fragments.push(`${font?.size ?? 16}px`);
-    fragments.push(font?.family ?? defaultFontFamily ?? 'Arial');
+    fragments.push(`"${font?.family ?? defaultFontFamily ?? 'Arial'}"`);
     return fragments.join(' ');
 };

@@ -1,6 +1,9 @@
+import { Jimp } from 'jimp';
 import { Bundler } from './lib/bundler';
+import { Replacement } from './lib/replacement';
 import { Template } from './lib/template';
 import { toPoint, toSize } from './lib/types/2d';
+import { ImageType } from './lib/types/image';
 
 type ExampleEntry = {
     title: string;
@@ -10,6 +13,7 @@ type ExampleEntry = {
 };
 
 (async () => {
+    const fireball = await Jimp.read('assets/fireball.png');
     const result = await Template.new<ExampleEntry>({
         defaultFontFamily: 'branela',
         defaultAssetsPath: 'assets',
@@ -67,6 +71,7 @@ type ExampleEntry = {
                 font: {
                     size: 32,
                 },
+                replacement: new Replacement().replace(["Fireball"], fireball as ImageType).build()
             },
         )
         .fromCsv('assets/data.csv', {

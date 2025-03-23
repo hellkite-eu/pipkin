@@ -15,6 +15,7 @@ import concat from 'lodash.concat';
 import * as fabric from 'fabric/node';
 import { canvasToImage } from './utils/canvasToImage';
 import { registerFont } from 'canvas';
+import { enhanceTextbox } from './utils/enhanceTextbox';
 
 type RequiredTemplateOptions = {
     height: number;
@@ -163,44 +164,16 @@ export class Template<EntryType extends Record<string, string>> {
         options?: TextLayerOptions,
     ): this =>
         this.layer(async (entry, { debugMode, width, height }) => {
-            const text = entry[key];
-
-            // render text
-            const canvas = new fabric.Canvas(null, { width, height });
-            const textObject = new fabric.Textbox(text, {
-                left: position.start.x,
-                top: position.start.y,
-                width: position.size.width,
-                height: position.size.height,
-                fontSize: options?.font?.size ?? 16,
-                fontFamily:
-                    options?.font?.family ?? this.defaultFontFamily ?? 'Arial',
-                fontWeight: options?.font?.bold ? 'bold' : 'normal',
-                fontStyle: options?.font?.italic ? 'italic' : 'normal',
-                fill: options?.color ?? 'black',
-                textAlign:
-                    position.textAlign ??
-                    DEFAULT_TEXT_ALIGNMENT_PROPS.textAlign,
-                splitByGrapheme: true, // word wrapping
-            });
-            canvas.add(textObject);
-
-            // debug mode
-            if (debugMode) {
-                const boundingBox = textObject.getBoundingRect();
-                const debugRect = new fabric.Rect({
-                    left: boundingBox.left,
-                    top: boundingBox.top,
-                    width: boundingBox.width,
-                    height: boundingBox.height,
-                    stroke: 'red',
-                    strokeWidth: 2,
-                    fill: 'transparent',
-                });
-                canvas.add(debugRect);
-            }
-
-            return canvasToImage(canvas);
+            const text = entry[key] as string;
+            const canvas = new fabric.Canvas(undefined, { width, height });
+            return enhanceTextbox(
+                text,
+                canvas,
+                options?.font?.family ?? this.defaultFontFamily ?? 'Arial',
+                debugMode,
+                position,
+                options,
+            );
         });
 
     font(path: fs.PathLike, name: string): this {
