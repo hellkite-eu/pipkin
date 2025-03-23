@@ -48,29 +48,29 @@ export async function placeImage(
     if (scale === 'keep-ratio') {
         // TODO: handle case when box has a size equal to 0
         const ratio = Math.min(
-            position.size.width / image.width,
-            position.size.height / image.height,
+            position.width / image.width,
+            position.height / image.height,
         );
         image.scale(ratio);
     }
 
     if (scale === 'stretch') {
-        image.scaleToFit({ w: position.size.width, h: position.size.height });
+        image.scaleToFit({ w: position.width, h: position.height });
     }
 
     const xOffset =
-        position.start.x +
+        position.x +
         computeOffsetFromAlignment(
             xAlignment,
             image.width,
-            position.size.width,
+            position.width,
         );
     const yOffset =
-        position.start.y +
+        position.y +
         computeOffsetFromAlignment(
             yAlignment,
             image.height,
-            position.size.height,
+            position.height,
         );
 
     return bg.composite(image, xOffset, yOffset);

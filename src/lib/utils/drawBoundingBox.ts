@@ -9,10 +9,10 @@ export const drawBoundingBox = async (
 ): Promise<ImageType> => {
     const fabricCanvas = new fabric.Canvas(undefined, imageSize);
     const boundingBox = new fabric.Rect({
-        left: box.start.x,
-        top: box.start.y,
-        width: box.size.width,
-        height: box.size.height,
+        left: box.x,
+        top: box.y,
+        width: box.width,
+        height: box.height,
         stroke: 'red',
         strokeWidth: 2,
         fill: 'transparent',

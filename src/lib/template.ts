@@ -8,12 +8,10 @@ import { ImageType, ImagePosition, ImageLayerOptions } from './types/image';
 import {
     TextPosition,
     TextLayerOptions,
-    DEFAULT_TEXT_ALIGNMENT_PROPS,
 } from './types/text';
 import { RenderOptions } from './types/render';
 import concat from 'lodash.concat';
 import * as fabric from 'fabric/node';
-import { canvasToImage } from './utils/canvasToImage';
 import { registerFont } from 'canvas';
 import { enhanceTextbox } from './utils/enhanceTextbox';
 

@@ -96,10 +96,10 @@ export const enhanceTextbox = async (
 
     // render text
     const textbox = new fabric.Textbox(replacedText, {
-        left: position.start.x,
-        top: position.start.y,
-        width: position.size.width,
-        height: position.size.height,
+        left: position.x,
+        top: position.y,
+        width: position.width,
+        height: position.height,
         fontSize: options?.font?.size ?? 16,
         fontFamily,
         fontWeight: options?.font?.bold ? 'bold' : 'normal',

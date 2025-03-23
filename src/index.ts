@@ -21,8 +21,8 @@ type ExampleEntry = {
         .textLayer(
             'title',
             {
-                start: toPoint(25, 25),
-                size: toSize(700, 700),
+                ...toPoint(25, 25),
+                ...toSize(700, 700),
                 textAlign: 'center',
             },
             {
@@ -36,8 +36,8 @@ type ExampleEntry = {
         .textLayer(
             'subtitle',
             {
-                start: toPoint(25, 125),
-                size: toSize(700, 700),
+                ...toPoint(25, 125),
+                ...toSize(700, 700),
                 textAlign: 'center',
             },
             {
@@ -51,8 +51,8 @@ type ExampleEntry = {
         .imageLayer(
             'title',
             {
-                start: toPoint(25, 225),
-                size: toSize(700, 700),
+                ...toPoint(25, 225),
+                ...toSize(700, 700),
                 scale: 'stretch',
             },
             {
@@ -63,8 +63,8 @@ type ExampleEntry = {
         .textLayer(
             'effect',
             {
-                start: toPoint(125, 950),
-                size: toSize(500, 150),
+                ...toPoint(125, 950),
+                ...toSize(500, 150),
                 textAlign: 'center',
             },
             {
