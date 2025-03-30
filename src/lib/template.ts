@@ -4,16 +4,15 @@ import { Jimp, rgbaToInt } from 'jimp';
 import camelCase from 'lodash.camelcase';
 import { placeImage } from './utils/placeImage';
 import { drawBoundingBox } from './utils/drawBoundingBox';
-import { ImageType, ImagePosition, ImageLayerOptions } from './types/image';
-import {
-    TextPosition,
-    TextLayerOptions,
-} from './types/text';
+import { ImageType, ImageLayerOptions, ImageLayerProps } from './types/image';
+import { TextPosition, TextLayerOptions, TextLayerProps } from './types/text';
 import { RenderOptions } from './types/render';
 import concat from 'lodash.concat';
 import * as fabric from 'fabric/node';
 import { registerFont } from 'canvas';
 import { enhanceTextbox } from './utils/enhanceTextbox';
+import path from 'path';
+import { OmitArgument } from './types/omitArgument';
 
 type RequiredTemplateOptions = {
     height: number;
@@ -95,28 +94,39 @@ export class Template<EntryType extends Record<string, string>> {
         return this;
     }
 
-    templateLayer = (fn: TemplateLayerFn<EntryType>): this =>
+    template = (fn: TemplateLayerFn<EntryType>): this =>
         this.layer(entry => {
             const template = fn(this.shadowTemplate());
             return template.render(entry);
         });
 
-    imageLayer = (
-        key: keyof EntryType,
-        position: ImagePosition,
-        options?: ImageLayerOptions,
+    container = (
+        imagesFn: (entry: EntryType) => Promise<Array<ImageType>>,
+        packingFn: (images: Array<ImageType>) => Promise<ImageType>,
     ): this =>
+        this.layer(async (entry: EntryType) => {
+            const images = await imagesFn(entry);
+            const result = await packingFn(images);
+            return result;
+        });
+
+    image = ({
+        key,
+        path,
+        position,
+        options,
+    }: ImageLayerProps<EntryType>): this =>
         this.layer(async (entry, { debugMode, width, height }) => {
-            const imagePath = options?.pathFn
-                ? options.pathFn(entry[key])
-                : entry[key];
-            const result = await placeImage(
-                this.shadowBackground(),
-                imagePath,
+            const imagePath =
+                path ??
+                (options?.pathFn ? options.pathFn(entry[key]) : entry[key]);
+            const image = await this.loadImage(imagePath, options);
+
+            const result = await placeImage({
+                background: this.shadowBackground(),
+                image,
                 position,
-                options,
-                this.defaultAssetsPath,
-            );
+            });
 
             // debug mode
             if (debugMode) {
@@ -130,37 +140,21 @@ export class Template<EntryType extends Record<string, string>> {
             return result;
         });
 
-    staticImageLayer = (
-        path: string,
-        position: ImagePosition,
+    private loadImage = async (
+        imagePath: string,
         options?: ImageLayerOptions,
-    ): this =>
-        this.layer(async (_, { debugMode, width, height }) => {
-            const result = await placeImage(
-                this.shadowBackground(),
-                path,
-                position,
-                options,
-                this.defaultAssetsPath,
-            );
+    ): Promise<ImageType> => {
+        const assetsPath = options?.assetsPath ?? this.defaultAssetsPath;
+        const imageCompletePath = assetsPath
+            ? path.join(assetsPath, imagePath)
+            : imagePath;
+        const image = (await Jimp.read(
+            imageCompletePath,
+        )) as unknown as ImageType;
+        return image;
+    };
 
-            // debug mode
-            if (debugMode) {
-                const debugImage = await drawBoundingBox(position, {
-                    width,
-                    height,
-                });
-                return debugImage.composite(result);
-            }
-
-            return result;
-        });
-
-    textLayer = (
-        key: keyof EntryType,
-        position: TextPosition,
-        options?: TextLayerOptions,
-    ): this =>
+    text = ({ key, position, options }: TextLayerProps<EntryType>): this =>
         this.layer(async (entry, { debugMode, width, height }) => {
             const text = entry[key] as string;
             const canvas = new fabric.Canvas(undefined, { width, height });
@@ -186,7 +180,7 @@ export class Template<EntryType extends Record<string, string>> {
         return this;
     }
 
-    async renderLayers(entry: EntryType): Promise<Array<ImageType>> {
+    private async renderLayers(entry: EntryType): Promise<Array<ImageType>> {
         return Promise.all(
             this.layers.map(layerFn =>
                 layerFn(entry, {

@@ -18,62 +18,64 @@ type ExampleEntry = {
         defaultFontFamily: 'branela',
         defaultAssetsPath: 'assets',
     })
-        .textLayer(
-            'title',
-            {
+        .text({
+            key: 'title',
+            position: {
                 ...toPoint(25, 25),
                 ...toSize(700, 700),
                 textAlign: 'center',
             },
-            {
+            options: {
                 font: {
                     size: 48,
                     family: 'blackflag',
                 },
             },
-        )
+        })
         .font('assets/BlackFlag.ttf', 'blackflag')
-        .textLayer(
-            'subtitle',
-            {
+        .text({
+            key: 'subtitle',
+            position: {
                 ...toPoint(25, 125),
                 ...toSize(700, 700),
                 textAlign: 'center',
             },
-            {
+            options: {
                 font: {
                     size: 38,
                 },
                 color: 'purple',
             },
-        )
+        })
         .font('assets/branela.otf', 'branela')
-        .imageLayer(
-            'title',
-            {
+        .image({
+            key: 'title',
+            position: {
                 ...toPoint(25, 225),
                 ...toSize(700, 700),
                 scale: 'stretch',
             },
-            {
+            options: {
                 assetsPath: 'assets',
                 pathFn: (title: string): string => `${title.toLowerCase()}.png`,
             },
-        )
-        .textLayer(
-            'effect',
-            {
+        })
+        .text({
+            key: 'effect',
+            position: {
                 ...toPoint(125, 950),
                 ...toSize(500, 150),
                 textAlign: 'center',
             },
-            {
+            options: {
                 font: {
                     size: 32,
                 },
-                replacement: new Replacement().replace(["Fireball"], fireball as ImageType).build()
+                replacement: new Replacement()
+                    .replace(['Fireball'], fireball as ImageType)
+                    .build(),
             },
-        )
+        })
         .fromCsv('assets/data.csv', {
             duplication: {
                 countField: 'copies',

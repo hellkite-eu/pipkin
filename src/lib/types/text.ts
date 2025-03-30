@@ -1,6 +1,12 @@
 import { BoundingBox } from './image';
 import { ReplacementMap } from './replacement';
 
+export type TextLayerProps<EntryType> = {
+    key: keyof EntryType;
+    position: TextPosition;
+    options?: TextLayerOptions;
+};;
+
 export type TextLayerOptions = {
     font?: {
         /**

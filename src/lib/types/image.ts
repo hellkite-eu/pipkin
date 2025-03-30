@@ -3,6 +3,20 @@ import { Point, Size } from './2d';
 
 export type ImageType = JimpInstance;
 
+export type ImageLayerProps<EntryType> = (
+    | {
+          key: keyof EntryType;
+          path?: undefined;
+      }
+    | {
+          key?: undefined;
+          path: string;
+      }
+) & {
+    position: ImagePosition;
+    options?: ImageLayerOptions;
+};
+
 export type ImageLayerOptions = {
     assetsPath?: string;
     pathFn?: (path: string) => string;

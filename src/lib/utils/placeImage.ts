@@ -23,20 +23,16 @@ function computeOffsetFromAlignment(
     }
 }
 
+type PlaceImageProps = {
+    background: ImageType;
+    image: ImageType;
+    position: ImagePosition;
+};
+
 export async function placeImage(
     // TODO: pass background size only
-    bg: ImageType,
-    imagePath: string,
-    position: ImagePosition,
-    options?: ImageLayerOptions,
-    defaultAssetsPath?: string,
+    { background, image, position }: PlaceImageProps,
 ): Promise<ImageType> {
-    const assetsPath = options?.assetsPath ?? defaultAssetsPath;
-    const imageCompletePath = assetsPath
-        ? path.join(assetsPath, imagePath)
-        : imagePath;
-    const image = (await Jimp.read(imageCompletePath)) as unknown as ImageType;
-
     // handle alignment inside the bounding box
     const xAlignment =
         position.xAlignment ?? position.alignment ?? DEFAULT_IMAGE_ALIGNMENT;
@@ -60,18 +56,10 @@ export async function placeImage(
 
     const xOffset =
         position.x +
-        computeOffsetFromAlignment(
-            xAlignment,
-            image.width,
-            position.width,
-        );
+        computeOffsetFromAlignment(xAlignment, image.width, position.width);
     const yOffset =
         position.y +
-        computeOffsetFromAlignment(
-            yAlignment,
-            image.height,
-            position.height,
-        );
+        computeOffsetFromAlignment(yAlignment, image.height, position.height);
 
-    return bg.composite(image, xOffset, yOffset);
+    return background.composite(image, xOffset, yOffset);
 }
