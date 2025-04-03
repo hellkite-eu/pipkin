@@ -1,7 +1,7 @@
 import { Jimp } from 'jimp';
 import path from 'path';
 import {
-    ImageAlignment,
+    Alignment,
     ImageType,
     ImagePosition,
     ImageLayerOptions,
@@ -10,7 +10,7 @@ import {
 } from '../types/image';
 
 function computeOffsetFromAlignment(
-    alignment: ImageAlignment,
+    alignment: Alignment,
     size: number,
     boxSize: number,
 ): number {

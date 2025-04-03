@@ -5,14 +5,16 @@ import camelCase from 'lodash.camelcase';
 import { placeImage } from './utils/placeImage';
 import { drawBoundingBox } from './utils/drawBoundingBox';
 import { ImageType, ImageLayerOptions, ImageLayerProps } from './types/image';
-import { TextPosition, TextLayerOptions, TextLayerProps } from './types/text';
+import { TextLayerProps } from './types/text';
 import { RenderOptions } from './types/render';
 import concat from 'lodash.concat';
 import * as fabric from 'fabric/node';
 import { registerFont } from 'canvas';
 import { enhanceTextbox } from './utils/enhanceTextbox';
 import path from 'path';
-import { OmitArgument } from './types/omitArgument';
+import { hboxPackingFn, vboxPackingFn } from './utils/container';
+import { DirectionContainerOptions, PackingFn } from './types/containers';
+import { BoundingBox } from './types/2d';
 
 type RequiredTemplateOptions = {
     height: number;
@@ -102,13 +104,27 @@ export class Template<EntryType extends Record<string, string>> {
 
     container = (
         imagesFn: (entry: EntryType) => Promise<Array<ImageType>>,
-        packingFn: (images: Array<ImageType>) => Promise<ImageType>,
+        packingFn: PackingFn,
     ): this =>
         this.layer(async (entry: EntryType) => {
             const images = await imagesFn(entry);
-            const result = await packingFn(images);
-            return result;
+            return packingFn(this.shadowBackground(), images);
         });
+
+    hbox = (
+        imagesFn: (entry: EntryType) => Promise<Array<ImageType>>,
+        position: BoundingBox,
+        options?: DirectionContainerOptions,
+    ): this => this.container(imagesFn, hboxPackingFn(position, options));
+
+    vbox = (
+        imagesFn: (entry: EntryType) => Promise<Array<ImageType>>,
+        position: BoundingBox,
+        options?: DirectionContainerOptions,
+    ): this => this.container(imagesFn, vboxPackingFn(position, options));
+
+    // grid = (imagesFn: (entry: EntryType) => Promise<Array<ImageType>>): this =>
+    //     this.container(imagesFn, gridPackingFn(position, options));
 
     image = ({
         key,
@@ -140,7 +156,7 @@ export class Template<EntryType extends Record<string, string>> {
             return result;
         });
 
-    private loadImage = async (
+    loadImage = async (
         imagePath: string,
         options?: ImageLayerOptions,
     ): Promise<ImageType> => {

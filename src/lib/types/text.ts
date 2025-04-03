@@ -1,4 +1,4 @@
-import { BoundingBox } from './image';
+import { BoundingBox } from './2d';
 import { ReplacementMap } from './replacement';
 
 export type TextLayerProps<EntryType> = {
