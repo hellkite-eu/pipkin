@@ -1,7 +1,7 @@
 import { canvasToImage } from './canvasToImage';
-import { Size } from '../types/2d';
-import { BoundingBox, ImageType } from '../types/image';
+import { BoundingBox, Size } from '../types/2d';
 import * as fabric from 'fabric/node';
+import { ImageType } from '../types/image';
 
 export const drawBoundingBox = async (
     box: BoundingBox,
