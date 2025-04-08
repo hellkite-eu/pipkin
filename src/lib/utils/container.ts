@@ -1,8 +1,7 @@
-import { BoundingBox, Point, toPoint } from '../types/2d';
+import { BoundingBox, Point } from '../types/2d';
 import {
     DEFAULT_CONTAINER_OPTIONS,
     DirectionContainerOptions,
-    GridContainerOptions,
     PackingFn,
 } from '../types/containers';
 import { ImageType } from '../types/image';
@@ -66,15 +65,6 @@ const directionalPackingFn = ({
     }
     return background;
 };
-
-// export const gridPackingFn = (
-//     background: ImageType,
-//     images: Array<ImageType>,
-//     position: BoundingBox,
-//     options?: GridContainerOptions,
-// ): Promise<ImageType> => {
-//     // TODO: implement
-// };
 
 const mainCoordinateFn = (
     item: { x: number; y: number },
@@ -207,8 +197,8 @@ const computeRenderCoordinatesForImages = (
     ) {
         coordinates.push(
             isVertical
-                ? toPoint(mainCoordinates[index], secondaryCoordinates[index])
-                : toPoint(secondaryCoordinates[index], mainCoordinates[index]),
+                ? { y: mainCoordinates[index], x: secondaryCoordinates[index]}
+                : { y: secondaryCoordinates[index], x: mainCoordinates[index]}
         );
     }
     return coordinates;

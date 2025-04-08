@@ -102,6 +102,7 @@ export class Template<EntryType extends Record<string, string>> {
             return template.render(entry);
         });
 
+    // TODO: logic for rendering debug helpers
     container = (
         imagesFn: (entry: EntryType) => Promise<Array<ImageType>>,
         packingFn: PackingFn,
@@ -123,8 +124,6 @@ export class Template<EntryType extends Record<string, string>> {
         options?: DirectionContainerOptions,
     ): this => this.container(imagesFn, vboxPackingFn(position, options));
 
-    // grid = (imagesFn: (entry: EntryType) => Promise<Array<ImageType>>): this =>
-    //     this.container(imagesFn, gridPackingFn(position, options));
 
     image = ({
         key,
