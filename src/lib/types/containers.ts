@@ -2,10 +2,8 @@ import { Alignment, ImageType, ScaleMode } from './image';
 
 export const DEFAULT_CONTAINER_OPTIONS: Required<ContainerOptions> = {
     gap: 0,
-    overflow: false,
-    justify: 'no-space',
-    alignment: 'center',
-    centering: 'center',
+    justifyContent: 'normal',
+    alignItems: 'center',
     scale: 'none',
 };
 
@@ -13,9 +11,9 @@ export type ContainerOptions = {
     /**
      * Setting a non-default value for justify will cause the alignment to be ignored.
      * 
-     * Defaults to `no-space`
+     * Defaults to `normal`
      */
-    justify?: ContainerJustify;
+    justifyContent?: ContainerJustifyContent;
 
     /**
      * This is treated as a minimum length of an unit of space
@@ -23,23 +21,7 @@ export type ContainerOptions = {
      * 
      * Defaults to 0
      */
-    gap?: number; // TODO: add other options
-
-    /**
-     * Render items that do not fit in the container outside of
-     * its bounding box
-     *
-     * Defaults to false
-     */
-    overflow?: boolean;
-
-    /**
-     * Defines how the items should be placed
-     * across the main direction of the container
-     *
-     * Defaults to `center`
-     */
-    alignment?: Alignment;
+    gap?: number;
 
     /**
      * Defines how the items should be placed
@@ -47,7 +29,7 @@ export type ContainerOptions = {
      *
      * Defaults to `center`
      */
-    centering?: Alignment;
+    alignItems?: Alignment;
 
     /**
      * Defaults to `none`
@@ -55,20 +37,27 @@ export type ContainerOptions = {
     scale?: ScaleMode;
 };
 
-export type DirectionContainerOptions = ContainerOptions;
+export type DirectionContainerOptions = ContainerOptions & {
+    reversed?: boolean;
+};
+
+// TODO: all required
+export const DEFAULT_DIRECTION_CONTAINER_OPTIONS: DirectionContainerOptions = {
+    ...DEFAULT_CONTAINER_OPTIONS,
+    reversed: false,
+}
 
 /**
- * Defines how the remaining space be used
- * -> `space-evenly` - around each item is a pair of equal units of space
- * -> `space-between` - between each 2 items there is a single units of space
- * -> `space-around` - around each item is a unique pair of equal units of space
- * -> `no-space` - no space
+ * Same as CSS justify-content property
  */
-type ContainerJustify =
+type ContainerJustifyContent =
+    | 'flex-start'
+    | 'flex-end'
+    | 'center'
     | 'space-evenly'
     | 'space-between'
     | 'space-around'
-    | 'no-space';
+    | 'normal';
 
 export type GridContainerOptions = ContainerOptions & {
     rows?: number;
@@ -85,4 +74,4 @@ export type GridContainerOptions = ContainerOptions & {
 };
 
 
-export type PackingFn = (background: ImageType, images: Array<ImageType>) => ImageType;
+export type PackingFn = (background: ImageType, images: Array<ImageType>) => Promise<ImageType>;

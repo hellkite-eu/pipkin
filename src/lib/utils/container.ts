@@ -1,10 +1,15 @@
 import { BoundingBox, Point } from '../types/2d';
 import {
     DEFAULT_CONTAINER_OPTIONS,
+    DEFAULT_DIRECTION_CONTAINER_OPTIONS,
     DirectionContainerOptions,
     PackingFn,
 } from '../types/containers';
-import { ImageType } from '../types/image';
+import { ImageType, ScaleMode } from '../types/image';
+import { h, create as createElement, VNode } from 'virtual-dom';
+import nodeHtmlToImage from 'node-html-to-image';
+import { Jimp } from 'jimp';
+import { toPx } from '../types';
 
 export const vboxPackingFn =
     (position: BoundingBox, options?: DirectionContainerOptions): PackingFn =>
@@ -28,7 +33,7 @@ export const hboxPackingFn =
             options,
         });
 
-const directionalPackingFn = ({
+const directionalPackingFn = async ({
     isVertical,
     background,
     images,
@@ -40,166 +45,74 @@ const directionalPackingFn = ({
     images: Array<ImageType>;
     position: BoundingBox;
     options?: DirectionContainerOptions;
-}): ImageType => {
-    const imagesToRender = computeImagesToRender(
-        isVertical,
-        images,
-        position,
-        options,
+}): Promise<ImageType> => {
+    const objectFit = SCALE_MODE_TO_OBJECT_FIT[options?.scale ?? 'none'];
+    const children = await Promise.all(
+        images.map(async image => {
+            const imageBase64 = await image.getBase64('image/png');
+            return h(
+                'img',
+                {
+                    style: {
+                        objectFit,
+                        flex: '1 1 auto',
+                        minWidth: 0,
+                        minHeight: 0,
+                        maxWidth: '100%',
+                        maxHeight: '100%',
+                    },
+                    src: imageBase64,
+                },
+                [],
+            );
+        }),
     );
-    const renderingCoordinates = computeRenderCoordinatesForImages(
-        isVertical,
-        imagesToRender,
-        position,
-        options,
-    );
-    for (
-        let index = 0;
-        index < Math.min(imagesToRender.length, renderingCoordinates.length);
-        index++
-    ) {
-        const image = imagesToRender[index];
-        const coordinate = renderingCoordinates[index];
+    const document = h(
+        'div',
+        {
+            style: {
+                display: 'flex',
+                position: 'absolute',
+                scale: 1,
 
-        background.composite(image, coordinate.x, coordinate.y);
-    }
-    return background;
+                flexDirection: `${isVertical ? 'column' : 'row'}${options?.reversed ? '-reversed' : ''}`,
+                gap: toPx(options?.gap ?? 0),
+                // TODO: merge options and defaults
+                justifyContent:
+                    options?.justifyContent ??
+                    DEFAULT_DIRECTION_CONTAINER_OPTIONS.justifyContent,
+                alignItems:
+                    options?.alignItems ??
+                    DEFAULT_DIRECTION_CONTAINER_OPTIONS.alignItems,
+
+                top: toPx(position.y),
+                left: toPx(position.x),
+                height: toPx(position.height),
+                width: toPx(position.width),
+            },
+        },
+        children,
+    );
+
+    const rootNode = createElement(document);
+    // TODO: extract this in a dif function
+    const image = await nodeHtmlToImage({
+        html: rootNode.toString(),
+        transparent: true,
+        type: 'png',
+        puppeteerArgs: {
+            defaultViewport: {
+                width: background.width,
+                height: background.height,
+            },
+        },
+    });
+    return Jimp.read(image as Buffer) as Promise<ImageType>;
 };
 
-const mainCoordinateFn = (
-    item: { x: number; y: number },
-    isVertical: boolean,
-): number => (isVertical ? item.y : item.x);
 
-const secondaryCoordinateFn = (
-    item: { x: number; y: number },
-    isVertical: boolean,
-): number => mainCoordinateFn(item, !isVertical);
-
-const mainSizeFn = (
-    item: { width: number; height: number },
-    isVertical: boolean,
-): number => (isVertical ? item.height : item.width);
-
-const secondarySizeFn = (
-    item: { width: number; height: number },
-    isVertical: boolean,
-): number => mainSizeFn(item, !isVertical);
-
-const computeImagesToRender = (
-    isVertical: boolean,
-    images: Array<ImageType>,
-    position: BoundingBox,
-    options?: DirectionContainerOptions,
-): Array<ImageType> => {
-    const gap = options?.gap ?? DEFAULT_CONTAINER_OPTIONS.gap;
-
-    const scale = options?.scale ?? DEFAULT_CONTAINER_OPTIONS.scale;
-    if (scale !== 'none') {
-        // TODO: if there are too many gaps, there might still be overflow
-        // TODO: scale images
-        return images;
-    }
-
-    const totalSize =
-        images.reduce((acc, image) => acc + mainSizeFn(image, isVertical), 0) +
-        (images.length - 1) * gap;
-
-    const shouldOverflow =
-        options?.overflow ?? DEFAULT_CONTAINER_OPTIONS.overflow;
-    const isOverflowing =
-        totalSize > mainSizeFn(position, isVertical) && shouldOverflow;
-
-    if (!isOverflowing) {
-        return images;
-    }
-    // TODO: if scaling is enabled, return all scaled down (or up)
-    const imagesToRender: Array<ImageType> = [];
-    let currentSize: number = 0;
-    for (const image of images) {
-        if (
-            currentSize + mainSizeFn(image, isVertical) + gap >
-            mainSizeFn(position, isVertical)
-        ) {
-            return imagesToRender;
-        }
-        imagesToRender.push(image);
-        currentSize += mainSizeFn(image, isVertical) + gap;
-    }
-    return imagesToRender;
-};
-
-const computeRenderCoordinatesForImages = (
-    isVertical: boolean,
-    images: Array<ImageType>,
-    position: BoundingBox,
-    options?: DirectionContainerOptions,
-): Array<Point> => {
-    const justify = options?.justify ?? DEFAULT_CONTAINER_OPTIONS.justify;
-    const alignment = options?.alignment ?? DEFAULT_CONTAINER_OPTIONS.alignment;
-    const centering = options?.centering ?? DEFAULT_CONTAINER_OPTIONS.centering;
-    const gap = options?.gap ?? DEFAULT_CONTAINER_OPTIONS.gap;
-
-    // TODO: move main coordinate computation to its own function
-    // justify?: ContainerJustify;
-    if (justify !== 'no-space') {
-        // TODO: handle this without alignment
-    }
-
-    // compute main axis coordinates
-    const mainCoordinatesInBoundingBox: Array<number> = [];
-    let currentMainCoordinate = 0;
-    for (const image of images) {
-        mainCoordinatesInBoundingBox.push(currentMainCoordinate);
-        currentMainCoordinate += mainSizeFn(image, isVertical) + gap;
-    }
-    const totalMainSize = Math.max(currentMainCoordinate - gap, 0);
-
-    let mainCoordinateOffset = mainCoordinateFn(position, isVertical);
-    if (alignment === 'center') {
-        mainCoordinateOffset +=
-            (mainSizeFn(position, isVertical) - totalMainSize) / 2;
-    } else if (alignment === 'end') {
-        mainCoordinateOffset +=
-            mainSizeFn(position, isVertical) - totalMainSize;
-    }
-
-    const mainCoordinates = mainCoordinatesInBoundingBox.map(
-        coordinate => coordinate + mainCoordinateOffset,
-    );
-
-    // compute secondary axis coordinates
-    const secondaryCoordinates: Array<number> = [];
-    for (const image of images) {
-        const secondarySize = secondarySizeFn(image, isVertical);
-
-        let secondaryCoordinateOffset = secondaryCoordinateFn(
-            position,
-            isVertical,
-        );
-        if (centering === 'center') {
-            secondaryCoordinateOffset +=
-                (secondarySizeFn(position, isVertical) - secondarySize) / 2;
-        } else if (centering === 'end') {
-            secondaryCoordinateOffset +=
-                secondarySizeFn(position, isVertical) - secondarySize;
-        }
-
-        secondaryCoordinates.push(secondaryCoordinateOffset);
-    }
-
-    // compute rendering coordinates for each image
-    const coordinates: Array<Point> = [];
-    for (
-        let index = 0;
-        index < Math.min(mainCoordinates.length, secondaryCoordinates.length);
-        index++
-    ) {
-        coordinates.push(
-            isVertical
-                ? { y: mainCoordinates[index], x: secondaryCoordinates[index]}
-                : { y: secondaryCoordinates[index], x: mainCoordinates[index]}
-        );
-    }
-    return coordinates;
+const SCALE_MODE_TO_OBJECT_FIT: Record<ScaleMode, string> = {
+    'keep-ratio': 'contain',
+    stretch: 'fill',
+    none: 'none',
 };

@@ -5,7 +5,7 @@ export type TextLayerProps<EntryType> = {
     key: keyof EntryType;
     position: TextPosition;
     options?: TextLayerOptions;
-};;
+};
 
 export type TextLayerOptions = {
     font?: {
@@ -27,18 +27,28 @@ export type TextLayerOptions = {
          */
         italic?: boolean;
     };
+
     color?: string;
+
     // TODO: processor fn
     replacement?: ReplacementMap;
-};
 
-export type TextPosition = TextAlignmentProps & BoundingBox;
-
-export type TextAlignmentProps = {
     /**
      * default `center`
      */
-    textAlign?:
+    xAlign?:
+        | 'left'
+        | 'center'
+        | 'right'
+        | 'justify'
+        | 'justify-left'
+        | 'justify-center'
+        | 'justify-right';
+
+    /**
+     * default `center`
+     */
+    yAlign?:
         | 'left'
         | 'center'
         | 'right'
@@ -48,6 +58,10 @@ export type TextAlignmentProps = {
         | 'justify-right';
 };
 
-export const DEFAULT_TEXT_ALIGNMENT_PROPS: Required<TextAlignmentProps> = {
-    textAlign: 'center',
+export type TextPosition = BoundingBox;
+
+// TODO: all required
+export const DEFAULT_TEXT_LAYER_OPTIONS: TextLayerOptions = {
+    xAlign: 'center',
+    yAlign: 'center',
 };

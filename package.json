@@ -17,17 +17,21 @@
     "dependencies": {
         "canvas": "^3.1.0",
         "fabric": "^6.6.1",
+        "html2canvas": "^1.4.1",
         "jimp": "^1.6.0",
         "lodash.camelcase": "^4.3.0",
         "lodash.concat": "^4.5.0",
+        "node-html-to-image": "^5.0.0",
         "papaparse": "^5.5.2",
-        "ts-node": "^10.9.2"
+        "ts-node": "^10.9.2",
+        "virtual-dom": "^2.1.1"
     },
     "devDependencies": {
         "@types/lodash.camelcase": "^4.3.9",
         "@types/lodash.concat": "^4.5.9",
         "@types/node": "^22.7.5",
         "@types/papaparse": "^5.3.15",
+        "@types/virtual-dom": "^2.1.4",
         "gts": "^6.0.2",
         "typescript": "^5.6.3"
     }

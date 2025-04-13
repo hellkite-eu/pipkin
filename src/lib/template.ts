@@ -8,13 +8,12 @@ import { ImageType, ImageLayerOptions, ImageLayerProps } from './types/image';
 import { TextLayerProps } from './types/text';
 import { RenderOptions } from './types/render';
 import concat from 'lodash.concat';
-import * as fabric from 'fabric/node';
 import { registerFont } from 'canvas';
-import { enhanceTextbox } from './utils/enhanceTextbox';
 import path from 'path';
 import { hboxPackingFn, vboxPackingFn } from './utils/container';
 import { DirectionContainerOptions, PackingFn } from './types/containers';
 import { BoundingBox } from './types/2d';
+import { renderText } from './utils';
 
 type RequiredTemplateOptions = {
     height: number;
@@ -124,7 +123,6 @@ export class Template<EntryType extends Record<string, string>> {
         options?: DirectionContainerOptions,
     ): this => this.container(imagesFn, vboxPackingFn(position, options));
 
-
     image = ({
         key,
         path,
@@ -172,14 +170,16 @@ export class Template<EntryType extends Record<string, string>> {
     text = ({ key, position, options }: TextLayerProps<EntryType>): this =>
         this.layer(async (entry, { debugMode, width, height }) => {
             const text = entry[key] as string;
-            const canvas = new fabric.Canvas(undefined, { width, height });
-            return enhanceTextbox(
+            const fontFamily =
+                options?.font?.family ?? this.defaultFontFamily ?? 'Arial';
+            return renderText(
                 text,
-                canvas,
-                options?.font?.family ?? this.defaultFontFamily ?? 'Arial',
-                debugMode,
                 position,
-                options,
+                {
+                    width,
+                    height, 
+                },
+                { ...options, font: { ...options?.font, family: fontFamily } },
             );
         });
 
