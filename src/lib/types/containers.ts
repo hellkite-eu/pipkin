@@ -1,11 +1,5 @@
-import { Alignment, ImageType, ScaleMode } from './image';
-
-export const DEFAULT_CONTAINER_OPTIONS: Required<ContainerOptions> = {
-    gap: 0,
-    justifyContent: 'normal',
-    alignItems: 'center',
-    scale: 'none',
-};
+import { Alignment, ImageType } from './image';
+import { ScaleMode } from './scale';
 
 export type ContainerOptions = {
     /**
@@ -37,12 +31,18 @@ export type ContainerOptions = {
     scale?: ScaleMode;
 };
 
+export const DEFAULT_CONTAINER_OPTIONS: Required<ContainerOptions> = {
+    gap: 0,
+    justifyContent: 'normal',
+    alignItems: 'center',
+    scale: 'none',
+};
+
 export type DirectionContainerOptions = ContainerOptions & {
     reversed?: boolean;
 };
 
-// TODO: all required
-export const DEFAULT_DIRECTION_CONTAINER_OPTIONS: DirectionContainerOptions = {
+export const DEFAULT_DIRECTION_CONTAINER_OPTIONS: Required<DirectionContainerOptions> = {
     ...DEFAULT_CONTAINER_OPTIONS,
     reversed: false,
 }

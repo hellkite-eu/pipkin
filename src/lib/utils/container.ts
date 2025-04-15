@@ -1,18 +1,17 @@
-import { BoundingBox, Point } from '../types/2d';
 import {
-    DEFAULT_CONTAINER_OPTIONS,
     DEFAULT_DIRECTION_CONTAINER_OPTIONS,
     DirectionContainerOptions,
     PackingFn,
 } from '../types/containers';
-import { ImageType, ScaleMode } from '../types/image';
-import { h, create as createElement, VNode } from 'virtual-dom';
+import { ImageType } from '../types/image';
+import { h, create as createElement } from 'virtual-dom';
 import nodeHtmlToImage from 'node-html-to-image';
 import { Jimp } from 'jimp';
-import { toPx } from '../types';
+import { Position, ScaleMode } from '../types';
+import { boundingBoxToPx, toPx } from './toPx';
 
 export const vboxPackingFn =
-    (position: BoundingBox, options?: DirectionContainerOptions): PackingFn =>
+    (position: Position, options?: DirectionContainerOptions): PackingFn =>
     (background: ImageType, images: Array<ImageType>) =>
         directionalPackingFn({
             isVertical: true,
@@ -23,7 +22,7 @@ export const vboxPackingFn =
         });
 
 export const hboxPackingFn =
-    (position: BoundingBox, options?: DirectionContainerOptions): PackingFn =>
+    (position: Position, options?: DirectionContainerOptions): PackingFn =>
     (background: ImageType, images: Array<ImageType>) =>
         directionalPackingFn({
             isVertical: false,
@@ -43,7 +42,7 @@ const directionalPackingFn = async ({
     isVertical: boolean;
     background: ImageType;
     images: Array<ImageType>;
-    position: BoundingBox;
+    position: Position;
     options?: DirectionContainerOptions;
 }): Promise<ImageType> => {
     const objectFit = SCALE_MODE_TO_OBJECT_FIT[options?.scale ?? 'none'];
@@ -85,10 +84,7 @@ const directionalPackingFn = async ({
                     options?.alignItems ??
                     DEFAULT_DIRECTION_CONTAINER_OPTIONS.alignItems,
 
-                top: toPx(position.y),
-                left: toPx(position.x),
-                height: toPx(position.height),
-                width: toPx(position.width),
+                ...boundingBoxToPx(position)
             },
         },
         children,

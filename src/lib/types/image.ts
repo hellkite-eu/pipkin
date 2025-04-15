@@ -1,32 +1,21 @@
 import { JimpInstance } from 'jimp';
-import { BoundingBox, Point, Size } from './2d';
+import { ScaleMode } from './scale';
 
 export type ImageType = JimpInstance;
 
-export type ImageLayerProps<EntryType> = (
-    | {
-          key: keyof EntryType;
-          path?: undefined;
-      }
-    | {
-          key?: undefined;
-          path: string;
-      }
-) & {
-    position: ImagePosition;
-    options?: ImageLayerOptions;
-};
+export type ImageRef<EntryType> =
+    | { buffer: Buffer }
+    | { path: string }
+    | { absolutePath: string }
+    | { key: keyof EntryType }
+    | { pathFn: (entry: EntryType) => string };
 
 export type ImageLayerOptions = {
+    /**
+     * Base path for the assets. Overrides the more global property of the template `defaultAssetsPath`.
+     */
     assetsPath?: string;
-    pathFn?: (path: string) => string;
-    // TODO:
-    // processorFn?: (entry: EntryType, image: ImageType) => Promise<ImageType>;
-};
 
-export type ImagePosition = ImageAlignmentProps & ScaleProps & BoundingBox;
-
-export type ImageAlignmentProps = {
     /**
      * Overridden by xAlignment and/or yAlignment if provided.
      * default `center`
@@ -40,27 +29,18 @@ export type ImageAlignmentProps = {
      * default `center`
      */
     yAlignment?: Alignment;
+
+    /**
+     * Defaults to `none`
+     */
+    scale?: ScaleMode;
+
+    // TODO:
+    // processorFn?: (entry: EntryType, image: ImageType) => Promise<ImageType>;
 };
 
 export type Alignment = 'start' | 'center' | 'end';
 
 export const DEFAULT_IMAGE_ALIGNMENT: Alignment = 'center';
 
-/**
- * Behavior of the content around a space
- * that is bigger or smaller than necessary
- * -> `none`: no scaling
- * -> `keep-ration`: scale while preserving aspect ration
- * -> `stretch`: scale without preserving aspect ration
- */
-// TODO: Could be extended with 'x-stretch' and 'y-stretch'
-export type ScaleMode = 'none' | 'keep-ratio' | 'stretch';
 
-export const DEFAULT_SCALE_MODE: ScaleMode = 'none';
-
-export type ScaleProps = {
-    /**
-     * Defaults to `none`
-     */
-    scale?: ScaleMode;
-};

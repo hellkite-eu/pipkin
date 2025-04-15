@@ -4,16 +4,16 @@ import { Jimp, rgbaToInt } from 'jimp';
 import camelCase from 'lodash.camelcase';
 import { placeImage } from './utils/placeImage';
 import { drawBoundingBox } from './utils/drawBoundingBox';
-import { ImageType, ImageLayerOptions, ImageLayerProps } from './types/image';
-import { TextLayerProps } from './types/text';
+import { ImageType, ImageLayerOptions, ImageRef } from './types/image';
+import { TextLayerOptions, TextRef } from './types/text';
 import { RenderOptions } from './types/render';
 import concat from 'lodash.concat';
 import { registerFont } from 'canvas';
 import path from 'path';
 import { hboxPackingFn, vboxPackingFn } from './utils/container';
 import { DirectionContainerOptions, PackingFn } from './types/containers';
-import { BoundingBox } from './types/2d';
 import { renderText } from './utils';
+import { Position, Size, toBoundingBox } from './types';
 
 type RequiredTemplateOptions = {
     height: number;
@@ -35,8 +35,6 @@ const DEFAULT_TEMPLATE_OPTIONS: RequiredTemplateOptions = {
 };
 
 export type LayerFnContext = {
-    width: number;
-    height: number;
     debugMode: boolean;
 };
 
@@ -90,6 +88,13 @@ export class Template<EntryType extends Record<string, string>> {
         });
     }
 
+    private get backgroundSize(): Size {
+        return {
+            width: this.background.width,
+            height: this.background.height,
+        };
+    }
+
     layer(fn: LayerFn<EntryType>): this {
         this.layers.push(fn);
         return this;
@@ -113,72 +118,71 @@ export class Template<EntryType extends Record<string, string>> {
 
     hbox = (
         imagesFn: (entry: EntryType) => Promise<Array<ImageType>>,
-        position: BoundingBox,
+        position: Position,
         options?: DirectionContainerOptions,
-    ): this => this.container(imagesFn, hboxPackingFn(position, options));
+    ): this =>
+        this.container(
+            imagesFn,
+            hboxPackingFn(
+                position,
+                options,
+            ),
+        );
 
     vbox = (
         imagesFn: (entry: EntryType) => Promise<Array<ImageType>>,
-        position: BoundingBox,
+        position: Position,
         options?: DirectionContainerOptions,
-    ): this => this.container(imagesFn, vboxPackingFn(position, options));
+    ): this =>
+        this.container(
+            imagesFn,
+            vboxPackingFn(
+                position,
+                options,
+            ),
+        );
 
-    image = ({
-        key,
-        path,
-        position,
-        options,
-    }: ImageLayerProps<EntryType>): this =>
-        this.layer(async (entry, { debugMode, width, height }) => {
-            const imagePath =
-                path ??
-                (options?.pathFn ? options.pathFn(entry[key]) : entry[key]);
-            const image = await this.loadImage(imagePath, options);
-
+    image = (
+        ref: ImageRef<EntryType>,
+        position: Position,
+        options: ImageLayerOptions,
+    ): this =>
+        this.layer(async (entry, { debugMode }) => {
+            const image = await this.pathFromImageRef(entry, ref, options);
             const result = await placeImage({
                 background: this.shadowBackground(),
                 image,
-                position,
+                position: toBoundingBox(position, this.backgroundSize),
+                options,
             });
 
             // debug mode
             if (debugMode) {
-                const debugImage = await drawBoundingBox(position, {
-                    width,
-                    height,
-                });
+                const debugImage = await drawBoundingBox(toBoundingBox(position, this.backgroundSize), this.backgroundSize);
                 return debugImage.composite(result);
             }
 
             return result;
         });
 
-    loadImage = async (
-        imagePath: string,
-        options?: ImageLayerOptions,
-    ): Promise<ImageType> => {
-        const assetsPath = options?.assetsPath ?? this.defaultAssetsPath;
-        const imageCompletePath = assetsPath
-            ? path.join(assetsPath, imagePath)
-            : imagePath;
-        const image = (await Jimp.read(
-            imageCompletePath,
-        )) as unknown as ImageType;
+    loadImage = async (imagePath: string | Buffer): Promise<ImageType> => {
+        const image = (await Jimp.read(imagePath)) as unknown as ImageType;
         return image;
     };
 
-    text = ({ key, position, options }: TextLayerProps<EntryType>): this =>
-        this.layer(async (entry, { debugMode, width, height }) => {
-            const text = entry[key] as string;
+    text = (
+        ref: TextRef<EntryType>,
+        position: Position,
+        options?: TextLayerOptions,
+    ): this =>
+        this.layer(async (entry, { debugMode }) => {
+            const text = this.textFromImageRef(entry, ref);
             const fontFamily =
                 options?.font?.family ?? this.defaultFontFamily ?? 'Arial';
             return renderText(
                 text,
                 position,
-                {
-                    width,
-                    height, 
-                },
+                this.backgroundSize,
                 { ...options, font: { ...options?.font, family: fontFamily } },
             );
         });
@@ -200,8 +204,6 @@ export class Template<EntryType extends Record<string, string>> {
             this.layers.map(layerFn =>
                 layerFn(entry, {
                     debugMode: this.debugMode,
-                    width: this.background.width,
-                    height: this.background.height,
                 }),
             ),
         );
@@ -273,6 +275,49 @@ export class Template<EntryType extends Record<string, string>> {
             }
         });
     }
+
+    private pathFromImageRef = async (
+        entry: EntryType,
+        ref: ImageRef<EntryType>,
+        options: ImageLayerOptions,
+    ): Promise<ImageType> => {
+        const assetsPath = options?.assetsPath ?? this.defaultAssetsPath;
+        const pathSegments = [];
+        if (assetsPath) {
+            pathSegments.push(assetsPath);
+        }
+
+        if ('buffer' in ref) {
+            return this.loadImage(ref.buffer);
+        } else if ('path' in ref) {
+            return this.loadImage(path.join(...pathSegments, ref.path));
+        } else if ('absolutePath' in ref) {
+            return this.loadImage(ref.absolutePath);
+        } else if ('key' in ref) {
+            const fileName = entry[ref.key];
+            return this.loadImage(path.join(...pathSegments, fileName));
+        } else if ('pathFn' in ref) {
+            const fileName = ref.pathFn(entry);
+            return this.loadImage(path.join(...pathSegments, fileName));
+        } else {
+            throw new Error('Unknown ImageRef variant');
+        }
+    };
+
+    private textFromImageRef = (
+        entry: EntryType,
+        ref: TextRef<EntryType>,
+    ): string => {
+        if ('key' in ref) {
+            return entry[ref.key];
+        } else if ('text' in ref) {
+            return ref.text;
+        } else if ('textFn' in ref) {
+            return ref.textFn(entry);
+        } else {
+            throw new Error('Unknown TextRef variant');
+        }
+    };
 }
 
 // TODO: Ledger of actions applied to the image like a logging feed

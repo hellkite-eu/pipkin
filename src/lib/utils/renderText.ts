@@ -2,18 +2,17 @@ import { h, create as createElement, VNode } from 'virtual-dom';
 import {
     DEFAULT_TEXT_LAYER_OPTIONS,
     ImageType,
+    Position,
     Size,
     TextLayerOptions,
-    TextPosition,
-    toPx,
 } from '../types';
 import nodeHtmlToImage from 'node-html-to-image';
 import { Jimp } from 'jimp';
-
+import { boundingBoxToPx, toPx } from './toPx';
 
 export const renderText = async (
     text: string,
-    position: TextPosition,
+    position: Position,
     backgroundSize: Size,
     options?: TextLayerOptions,
 ): Promise<ImageType> => {
@@ -62,15 +61,12 @@ export const renderText = async (
                 overflow: 'visible',
                 position: 'absolute',
 
-                top: toPx(position.y),
-                left: toPx(position.x),
-                height: toPx(position.height),
-                width: toPx(position.width),
-
                 justifyContent:
                     options?.xAlign ?? DEFAULT_TEXT_LAYER_OPTIONS.xAlign,
                 alignItems:
                     options?.yAlign ?? DEFAULT_TEXT_LAYER_OPTIONS.yAlign,
+
+                ...boundingBoxToPx(position),
             },
         },
         [

@@ -1,11 +1,9 @@
-import { BoundingBox } from './2d';
 import { ReplacementMap } from './replacement';
 
-export type TextLayerProps<EntryType> = {
-    key: keyof EntryType;
-    position: TextPosition;
-    options?: TextLayerOptions;
-};
+export type TextRef<EntryType> =
+    | { key: string }
+    | { text: string }
+    | { textFn: (entry: EntryType) => string };
 
 export type TextLayerOptions = {
     font?: {
@@ -57,8 +55,6 @@ export type TextLayerOptions = {
         | 'justify-center'
         | 'justify-right';
 };
-
-export type TextPosition = BoundingBox;
 
 // TODO: all required
 export const DEFAULT_TEXT_LAYER_OPTIONS: TextLayerOptions = {

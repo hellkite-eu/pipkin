@@ -1,12 +1,9 @@
-import { Jimp } from 'jimp';
-import path from 'path';
+import { BoundingBox, DEFAULT_SCALE_MODE } from '../types';
 import {
     Alignment,
     ImageType,
-    ImagePosition,
-    ImageLayerOptions,
     DEFAULT_IMAGE_ALIGNMENT,
-    DEFAULT_SCALE_MODE,
+    ImageLayerOptions,
 } from '../types/image';
 
 function computeOffsetFromAlignment(
@@ -26,20 +23,21 @@ function computeOffsetFromAlignment(
 type PlaceImageProps = {
     background: ImageType;
     image: ImageType;
-    position: ImagePosition;
+    position: BoundingBox;
+    options: ImageLayerOptions;
 };
 
 export async function placeImage(
     // TODO: pass background size only
-    { background, image, position }: PlaceImageProps,
+    { background, image, position, options }: PlaceImageProps,
 ): Promise<ImageType> {
     // handle alignment inside the bounding box
     const xAlignment =
-        position.xAlignment ?? position.alignment ?? DEFAULT_IMAGE_ALIGNMENT;
+    options.xAlignment ?? options.alignment ?? DEFAULT_IMAGE_ALIGNMENT;
     const yAlignment =
-        position.yAlignment ?? position.alignment ?? DEFAULT_IMAGE_ALIGNMENT;
+    options.yAlignment ?? options.alignment ?? DEFAULT_IMAGE_ALIGNMENT;
 
-    const scale = position.scale ?? DEFAULT_SCALE_MODE;
+    const scale = options.scale ?? DEFAULT_SCALE_MODE;
 
     if (scale === 'keep-ratio') {
         // TODO: handle case when box has a size equal to 0
