@@ -1,5 +1,4 @@
-import { ImageType } from "./types/image";
-import { ReplacementMap } from "./types/replacement";
+import { ReplacementMap, ImageType } from "./types";
 
 /**
  * Represents a replacement map between sets of words and symbols

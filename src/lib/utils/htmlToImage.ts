@@ -1,10 +1,9 @@
-import { ImageType } from '../types/image';
 import { create as createElement, VNode } from 'virtual-dom';
 import nodeHtmlToImage from 'node-html-to-image';
 import { Jimp } from 'jimp';
-import { Size } from '../types';
+import { ImageType, Size } from '../types';
 
-export const vNodeToImage = async (
+export const htmlToImage = async (
     document: VNode,
     backgroundSize: Size,
 ): Promise<ImageType> => {

@@ -4,22 +4,22 @@ import {
     DEFAULT_IMAGE_LAYER_OPTIONS,
     ImageLayerOptions,
     ImageType,
-    Position,
+    BoundingBox,
+    SCALE_MODE_TO_OBJECT_FIT,
 } from '../types';
 import merge from 'lodash.merge';
-import { SCALE_MODE_TO_OBJECT_FIT } from '../types/css';
-import { vNodeToImage } from './vNodeToImage';
+import { htmlToImage } from './htmlToImage';
 
 type PlaceImageProps = {
     image: ImageType;
-    position: Position;
+    box: BoundingBox;
     backgroundSize: { width: number; height: number };
     options: ImageLayerOptions;
 };
 
 export async function placeImage({
     image,
-    position,
+    box,
     backgroundSize,
     options,
 }: PlaceImageProps): Promise<ImageType> {
@@ -38,7 +38,7 @@ export async function placeImage({
                 justifyContent: mergedOptions.justifyContent,
                 alignItems: mergedOptions.alignItems,
 
-                ...boundingBoxToPx(position),
+                ...boundingBoxToPx(box),
             },
         },
         [
@@ -60,5 +60,5 @@ export async function placeImage({
         ],
     );
 
-    return vNodeToImage(document, backgroundSize);
+    return htmlToImage(document, backgroundSize);
 }

@@ -1,4 +1,4 @@
-import { TextLayerOptions } from "../types/text";
+import { TextLayerOptions } from "../types";
 
 export const buildFontString = (
     font: TextLayerOptions['font'],

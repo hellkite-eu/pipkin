@@ -2,16 +2,16 @@ import { h, VNode } from 'virtual-dom';
 import {
     DEFAULT_TEXT_LAYER_OPTIONS,
     ImageType,
-    Position,
+    BoundingBox,
     Size,
     TextLayerOptions,
 } from '../types';
 import { boundingBoxToPx, toPx } from './toPx';
-import { vNodeToImage } from './vNodeToImage';
+import { htmlToImage } from './htmlToImage';
 
 export const renderText = async (
     text: string,
-    position: Position,
+    box: BoundingBox,
     backgroundSize: Size,
     options?: TextLayerOptions,
 ): Promise<ImageType> => {
@@ -65,7 +65,7 @@ export const renderText = async (
                 alignItems:
                     options?.yAlign ?? DEFAULT_TEXT_LAYER_OPTIONS.yAlign,
 
-                ...boundingBoxToPx(position),
+                ...boundingBoxToPx(box),
             },
         },
         [
@@ -89,5 +89,5 @@ export const renderText = async (
         ],
     );
 
-    return vNodeToImage(document, backgroundSize);
+    return htmlToImage(document, backgroundSize);
 };

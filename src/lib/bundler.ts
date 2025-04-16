@@ -1,6 +1,5 @@
 import { Jimp } from 'jimp';
-import { Size } from './types/2d';
-import { ImageType } from './types/image';
+import { Size, ImageType } from './types';
 
 type RequiredBundlerOptions = {
     size: Size;

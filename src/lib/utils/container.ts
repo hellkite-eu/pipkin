@@ -1,35 +1,29 @@
-import {
-    DEFAULT_DIRECTION_CONTAINER_OPTIONS,
-    DirectionContainerOptions,
-    PackingFn,
-} from '../types/containers';
-import { ImageType } from '../types/image';
+
 import { h } from 'virtual-dom';
-import { Position, Size } from '../types';
+import { DEFAULT_DIRECTION_CONTAINER_OPTIONS, DirectionContainerOptions, ImageType, PackingFn, BoundingBox, SCALE_MODE_TO_OBJECT_FIT, Size } from '../types';
 import { boundingBoxToPx, toPx } from './toPx';
-import { SCALE_MODE_TO_OBJECT_FIT } from '../types/css';
 import merge from 'lodash.merge';
-import { vNodeToImage } from './vNodeToImage';
+import { htmlToImage } from './htmlToImage';
 
 export const vboxPackingFn =
-    (position: Position, options?: DirectionContainerOptions): PackingFn =>
+    (box: BoundingBox, options?: DirectionContainerOptions): PackingFn =>
     (background: ImageType, images: Array<ImageType>) =>
         directionalPackingFn({
             isVertical: true,
             backgroundSize: background,
             images,
-            position,
+            box,
             options,
         });
 
 export const hboxPackingFn =
-    (position: Position, options?: DirectionContainerOptions): PackingFn =>
+    (box: BoundingBox, options?: DirectionContainerOptions): PackingFn =>
     (background: ImageType, images: Array<ImageType>) =>
         directionalPackingFn({
             isVertical: false,
             backgroundSize: background,
             images,
-            position,
+            box,
             options,
         });
 
@@ -37,13 +31,13 @@ const directionalPackingFn = async ({
     isVertical,
     backgroundSize: background,
     images,
-    position,
+    box,
     options,
 }: {
     isVertical: boolean;
     backgroundSize: Size;
     images: Array<ImageType>;
-    position: Position;
+    box: BoundingBox;
     options?: DirectionContainerOptions;
 }): Promise<ImageType> => {
     const mergedOptions = merge(DEFAULT_DIRECTION_CONTAINER_OPTIONS, options);
@@ -82,11 +76,11 @@ const directionalPackingFn = async ({
                 justifyContent: mergedOptions.justifyContent,
                 alignItems: mergedOptions.alignItems,
 
-                ...boundingBoxToPx(position),
+                ...boundingBoxToPx(box),
             },
         },
         children,
     );
 
-    return vNodeToImage(document, background);
+    return htmlToImage(document, background);
 };

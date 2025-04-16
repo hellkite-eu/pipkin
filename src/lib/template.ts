@@ -2,18 +2,11 @@ import * as fs from 'fs';
 import { parse as parseCsv } from 'papaparse';
 import { Jimp, rgbaToInt } from 'jimp';
 import camelCase from 'lodash.camelcase';
-import { placeImage } from './utils/placeImage';
-import { drawBoundingBox } from './utils/drawBoundingBox';
-import { ImageType, ImageLayerOptions, ImageRef } from './types/image';
-import { TextLayerOptions, TextRef } from './types/text';
-import { RenderOptions } from './types/render';
 import concat from 'lodash.concat';
 import { registerFont } from 'canvas';
 import path from 'path';
-import { hboxPackingFn, vboxPackingFn } from './utils/container';
-import { DirectionContainerOptions, PackingFn } from './types/containers';
-import { renderText } from './utils';
-import { Position, Size, toBoundingBox } from './types';
+import { drawBoundingBox, hboxPackingFn, placeImage, renderText, vboxPackingFn } from './utils';
+import { DirectionContainerOptions, ImageLayerOptions, ImageRef, ImageType, PackingFn, BoundingBox, RenderOptions, Size, TextLayerOptions, TextRef } from './types';
 
 type RequiredTemplateOptions = {
     height: number;
@@ -118,26 +111,26 @@ export class Template<EntryType extends Record<string, string>> {
 
     hbox = (
         imagesFn: (entry: EntryType) => Promise<Array<ImageType>>,
-        position: Position,
+        box: BoundingBox,
         options?: DirectionContainerOptions,
-    ): this => this.container(imagesFn, hboxPackingFn(position, options));
+    ): this => this.container(imagesFn, hboxPackingFn(box, options));
 
     vbox = (
         imagesFn: (entry: EntryType) => Promise<Array<ImageType>>,
-        position: Position,
+        box: BoundingBox,
         options?: DirectionContainerOptions,
-    ): this => this.container(imagesFn, vboxPackingFn(position, options));
+    ): this => this.container(imagesFn, vboxPackingFn(box, options));
 
     image = (
         ref: ImageRef<EntryType>,
-        position: Position,
+        box: BoundingBox,
         options: ImageLayerOptions,
     ): this =>
         this.layer(async (entry, { debugMode }) => {
             const image = await this.pathFromImageRef(entry, ref, options);
             const result = await placeImage({
                 image,
-                position,
+                box,
                 backgroundSize: this.backgroundSize,
                 options,
             });
@@ -145,7 +138,7 @@ export class Template<EntryType extends Record<string, string>> {
             // debug mode
             if (debugMode) {
                 const debugImage = await drawBoundingBox(
-                    toBoundingBox(position, this.backgroundSize),
+                    box,
                     this.backgroundSize,
                 );
                 return debugImage.composite(result);
@@ -160,14 +153,14 @@ export class Template<EntryType extends Record<string, string>> {
 
     text = (
         ref: TextRef<EntryType>,
-        position: Position,
+        box: BoundingBox,
         options?: TextLayerOptions,
     ): this =>
         this.layer(async (entry, { debugMode }) => {
             const text = this.textFromImageRef(entry, ref);
             const fontFamily =
                 options?.font?.family ?? this.defaultFontFamily ?? 'Arial';
-            return renderText(text, position, this.backgroundSize, {
+            return renderText(text, box, this.backgroundSize, {
                 ...options,
                 font: { ...options?.font, family: fontFamily },
             });
