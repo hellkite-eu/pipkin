@@ -1,4 +1,4 @@
-import { h, create as createElement, VNode } from 'virtual-dom';
+import { h, VNode } from 'virtual-dom';
 import {
     DEFAULT_TEXT_LAYER_OPTIONS,
     ImageType,
@@ -6,9 +6,8 @@ import {
     Size,
     TextLayerOptions,
 } from '../types';
-import nodeHtmlToImage from 'node-html-to-image';
-import { Jimp } from 'jimp';
 import { boundingBoxToPx, toPx } from './toPx';
+import { vNodeToImage } from './vNodeToImage';
 
 export const renderText = async (
     text: string,
@@ -90,17 +89,5 @@ export const renderText = async (
         ],
     );
 
-    const rootNode = createElement(document);
-    const image = await nodeHtmlToImage({
-        html: rootNode.toString(),
-        transparent: true,
-        type: 'png',
-        puppeteerArgs: {
-            defaultViewport: {
-                width: backgroundSize.width,
-                height: backgroundSize.height,
-            },
-        },
-    });
-    return Jimp.read(image as Buffer) as Promise<ImageType>;
+    return vNodeToImage(document, backgroundSize);
 };

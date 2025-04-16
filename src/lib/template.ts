@@ -120,27 +120,13 @@ export class Template<EntryType extends Record<string, string>> {
         imagesFn: (entry: EntryType) => Promise<Array<ImageType>>,
         position: Position,
         options?: DirectionContainerOptions,
-    ): this =>
-        this.container(
-            imagesFn,
-            hboxPackingFn(
-                position,
-                options,
-            ),
-        );
+    ): this => this.container(imagesFn, hboxPackingFn(position, options));
 
     vbox = (
         imagesFn: (entry: EntryType) => Promise<Array<ImageType>>,
         position: Position,
         options?: DirectionContainerOptions,
-    ): this =>
-        this.container(
-            imagesFn,
-            vboxPackingFn(
-                position,
-                options,
-            ),
-        );
+    ): this => this.container(imagesFn, vboxPackingFn(position, options));
 
     image = (
         ref: ImageRef<EntryType>,
@@ -150,21 +136,23 @@ export class Template<EntryType extends Record<string, string>> {
         this.layer(async (entry, { debugMode }) => {
             const image = await this.pathFromImageRef(entry, ref, options);
             const result = await placeImage({
-                background: this.shadowBackground(),
                 image,
-                position: toBoundingBox(position, this.backgroundSize),
+                position,
+                backgroundSize: this.backgroundSize,
                 options,
             });
 
             // debug mode
             if (debugMode) {
-                const debugImage = await drawBoundingBox(toBoundingBox(position, this.backgroundSize), this.backgroundSize);
+                const debugImage = await drawBoundingBox(
+                    toBoundingBox(position, this.backgroundSize),
+                    this.backgroundSize,
+                );
                 return debugImage.composite(result);
             }
 
             return result;
         });
-
     loadImage = async (imagePath: string | Buffer): Promise<ImageType> => {
         const image = (await Jimp.read(imagePath)) as unknown as ImageType;
         return image;
@@ -179,12 +167,10 @@ export class Template<EntryType extends Record<string, string>> {
             const text = this.textFromImageRef(entry, ref);
             const fontFamily =
                 options?.font?.family ?? this.defaultFontFamily ?? 'Arial';
-            return renderText(
-                text,
-                position,
-                this.backgroundSize,
-                { ...options, font: { ...options?.font, family: fontFamily } },
-            );
+            return renderText(text, position, this.backgroundSize, {
+                ...options,
+                font: { ...options?.font, family: fontFamily },
+            });
         });
 
     font(path: fs.PathLike, name: string): this {

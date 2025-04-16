@@ -1,4 +1,5 @@
-import { Alignment, ImageType } from './image';
+import { AlignItems, JustifyContent } from './css';
+import { ImageType } from './image';
 import { ScaleMode } from './scale';
 
 export type ContainerOptions = {
@@ -7,7 +8,7 @@ export type ContainerOptions = {
      * 
      * Defaults to `normal`
      */
-    justifyContent?: ContainerJustifyContent;
+    justifyContent?: JustifyContent;
 
     /**
      * This is treated as a minimum length of an unit of space
@@ -23,7 +24,7 @@ export type ContainerOptions = {
      *
      * Defaults to `center`
      */
-    alignItems?: Alignment;
+    alignItems?: AlignItems;
 
     /**
      * Defaults to `none`
@@ -46,18 +47,6 @@ export const DEFAULT_DIRECTION_CONTAINER_OPTIONS: Required<DirectionContainerOpt
     ...DEFAULT_CONTAINER_OPTIONS,
     reversed: false,
 }
-
-/**
- * Same as CSS justify-content property
- */
-type ContainerJustifyContent =
-    | 'flex-start'
-    | 'flex-end'
-    | 'center'
-    | 'space-evenly'
-    | 'space-between'
-    | 'space-around'
-    | 'normal';
 
 export type GridContainerOptions = ContainerOptions & {
     rows?: number;

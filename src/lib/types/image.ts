@@ -1,5 +1,6 @@
 import { JimpInstance } from 'jimp';
 import { ScaleMode } from './scale';
+import { AlignItems, JustifyContent } from './css';
 
 export type ImageType = JimpInstance;
 
@@ -17,18 +18,13 @@ export type ImageLayerOptions = {
     assetsPath?: string;
 
     /**
-     * Overridden by xAlignment and/or yAlignment if provided.
      * default `center`
      */
-    alignment?: Alignment;
+    justifyContent?: JustifyContent;
     /**
      * default `center`
      */
-    xAlignment?: Alignment;
-    /**
-     * default `center`
-     */
-    yAlignment?: Alignment;
+    alignItems?: AlignItems;
 
     /**
      * Defaults to `none`
@@ -39,8 +35,15 @@ export type ImageLayerOptions = {
     // processorFn?: (entry: EntryType, image: ImageType) => Promise<ImageType>;
 };
 
+export const DEFAULT_IMAGE_LAYER_OPTIONS: Required<
+    Omit<ImageLayerOptions, 'assetsPath'>
+> &
+    Pick<ImageLayerOptions, 'assetsPath'> = {
+    justifyContent: 'center',
+    alignItems: 'center',
+    scale: 'none',
+};
+
 export type Alignment = 'start' | 'center' | 'end';
 
 export const DEFAULT_IMAGE_ALIGNMENT: Alignment = 'center';
-
-
