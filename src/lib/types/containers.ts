@@ -1,3 +1,4 @@
+import { BoundingBox } from './boundingBox';
 import { AlignItems, JustifyContent } from './css';
 import { ImageType } from './image';
 import { ScaleMode } from './scale';
@@ -63,4 +64,4 @@ export type GridContainerOptions = ContainerOptions & {
 };
 
 
-export type PackingFn = (background: ImageType, images: Array<ImageType>) => Promise<ImageType>;
+export type PackingFn = (box: BoundingBox, background: ImageType, images: Array<ImageType>) => Promise<ImageType>;

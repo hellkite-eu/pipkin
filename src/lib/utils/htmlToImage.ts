@@ -17,6 +17,7 @@ export const htmlToImage = async (
             defaultViewport: {
                 width: backgroundSize.width,
                 height: backgroundSize.height,
+                deviceScaleFactor: 1,
             },
         },
     });

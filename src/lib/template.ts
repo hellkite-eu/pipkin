@@ -5,8 +5,25 @@ import camelCase from 'lodash.camelcase';
 import concat from 'lodash.concat';
 import { registerFont } from 'canvas';
 import path from 'path';
-import { drawBoundingBox, hboxPackingFn, placeImage, renderText, vboxPackingFn } from './utils';
-import { DirectionContainerOptions, ImageLayerOptions, ImageRef, ImageType, PackingFn, BoundingBox, RenderOptions, Size, TextLayerOptions, TextRef } from './types';
+import {
+    drawBoundingBox,
+    hboxPackingFn,
+    placeImage,
+    renderText,
+    vboxPackingFn,
+} from './utils';
+import {
+    DirectionContainerOptions,
+    ImageLayerOptions,
+    ImageRef,
+    ImageType,
+    PackingFn,
+    BoundingBox,
+    RenderOptions,
+    Size,
+    TextLayerOptions,
+    TextRef,
+} from './types';
 
 type RequiredTemplateOptions = {
     height: number;
@@ -102,24 +119,36 @@ export class Template<EntryType extends Record<string, string>> {
     // TODO: logic for rendering debug helpers
     container = (
         imagesFn: (entry: EntryType) => Promise<Array<ImageType>>,
+        box: BoundingBox,
         packingFn: PackingFn,
     ): this =>
-        this.layer(async (entry: EntryType) => {
+        this.layer(async (entry: EntryType, { debugMode }) => {
             const images = await imagesFn(entry);
-            return packingFn(this.shadowBackground(), images);
+            const result = await packingFn(box, this.shadowBackground(), images);
+
+            // debug mode
+            if (debugMode) {
+                const debugImage = await drawBoundingBox(
+                    box,
+                    this.backgroundSize,
+                );
+                return debugImage.composite(result);
+            }
+
+            return result;
         });
 
     hbox = (
         imagesFn: (entry: EntryType) => Promise<Array<ImageType>>,
         box: BoundingBox,
         options?: DirectionContainerOptions,
-    ): this => this.container(imagesFn, hboxPackingFn(box, options));
+    ): this => this.container(imagesFn, box, hboxPackingFn(options));
 
     vbox = (
         imagesFn: (entry: EntryType) => Promise<Array<ImageType>>,
         box: BoundingBox,
         options?: DirectionContainerOptions,
-    ): this => this.container(imagesFn, vboxPackingFn(box, options));
+    ): this => this.container(imagesFn, box, vboxPackingFn(options));
 
     image = (
         ref: ImageRef<EntryType>,
@@ -160,10 +189,21 @@ export class Template<EntryType extends Record<string, string>> {
             const text = this.textFromImageRef(entry, ref);
             const fontFamily =
                 options?.font?.family ?? this.defaultFontFamily ?? 'Arial';
-            return renderText(text, box, this.backgroundSize, {
+            const result = await renderText(text, box, this.backgroundSize, {
                 ...options,
                 font: { ...options?.font, family: fontFamily },
             });
+
+            // debug mode
+            if (debugMode) {
+                const debugImage = await drawBoundingBox(
+                    box,
+                    this.backgroundSize,
+                );
+                return debugImage.composite(result);
+            }
+
+            return result;
         });
 
     font(path: fs.PathLike, name: string): this {

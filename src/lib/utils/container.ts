@@ -6,8 +6,8 @@ import merge from 'lodash.merge';
 import { htmlToImage } from './htmlToImage';
 
 export const vboxPackingFn =
-    (box: BoundingBox, options?: DirectionContainerOptions): PackingFn =>
-    (background: ImageType, images: Array<ImageType>) =>
+    ( options?: DirectionContainerOptions): PackingFn =>
+    (box: BoundingBox, background: ImageType, images: Array<ImageType>) =>
         directionalPackingFn({
             isVertical: true,
             backgroundSize: background,
@@ -17,8 +17,8 @@ export const vboxPackingFn =
         });
 
 export const hboxPackingFn =
-    (box: BoundingBox, options?: DirectionContainerOptions): PackingFn =>
-    (background: ImageType, images: Array<ImageType>) =>
+    (options?: DirectionContainerOptions): PackingFn =>
+    (box: BoundingBox, background: ImageType, images: Array<ImageType>) =>
         directionalPackingFn({
             isVertical: false,
             backgroundSize: background,
