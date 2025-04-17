@@ -7,6 +7,7 @@ import { registerFont } from 'canvas';
 import path from 'path';
 import {
     drawBoundingBox,
+    gridPackingFn,
     hboxPackingFn,
     placeImage,
     renderText,
@@ -23,6 +24,7 @@ import {
     Size,
     TextLayerOptions,
     TextRef,
+    GridContainerOptions,
 } from './types';
 
 type RequiredTemplateOptions = {
@@ -149,6 +151,12 @@ export class Template<EntryType extends Record<string, string>> {
         box: BoundingBox,
         options?: DirectionContainerOptions,
     ): this => this.container(imagesFn, box, vboxPackingFn(options));
+
+    grid = (
+        imagesFn: (entry: EntryType) => Promise<Array<ImageType>>,
+        box: BoundingBox,
+        options?: GridContainerOptions,
+    ): this => this.container(imagesFn, box, gridPackingFn(options));
 
     image = (
         ref: ImageRef<EntryType>,

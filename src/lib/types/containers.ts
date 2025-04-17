@@ -50,8 +50,7 @@ export const DEFAULT_DIRECTION_CONTAINER_OPTIONS: Required<DirectionContainerOpt
 }
 
 export type GridContainerOptions = ContainerOptions & {
-    rows?: number;
-    cols?: number;
+    size?: number;
 
     /**
      * Defines what is considered the main direction of the container.
@@ -63,5 +62,10 @@ export type GridContainerOptions = ContainerOptions & {
     direction?: 'rows' | 'cols';
 };
 
+export const DEFAULT_GRID_CONTAINER_OPTIONS: Required<GridContainerOptions> = {
+    ...DEFAULT_CONTAINER_OPTIONS,
+    size: 3,
+    direction: 'rows',
+}
 
 export type PackingFn = (box: BoundingBox, background: ImageType, images: Array<ImageType>) => Promise<ImageType>;
