@@ -1,47 +1,39 @@
 import { JimpInstance } from 'jimp';
 import { ScaleMode } from './scale';
-import { AlignItems, JustifyContent } from './css';
+import { LayerOptions } from './layer';
+import { RequiredDeep } from 'type-fest';
 
 export type ImageType = JimpInstance;
 
-export type ImageRef<EntryType> =
+export type ImageRef<EntryType extends Record<string, string>> =
     | { buffer: Buffer }
     | { path: string }
     | { absolutePath: string }
     | { key: keyof EntryType }
     | { pathFn: (entry: EntryType) => string };
 
-export type ImageLayerOptions = {
-    /**
-     * Base path for the assets. Overrides the more global property of the template `defaultAssetsPath`.
-     */
-    assetsPath?: string;
+export type ImageLayerOptions<EntryType extends Record<string, string>> =
+    LayerOptions<EntryType> & {
+        /**
+         * Base path for the assets. Overrides the more global property of the template `defaultAssetsPath`.
+         */
+        assetsPath?: string;
 
-    /**
-     * default `center`
-     */
-    justifyContent?: JustifyContent;
-    /**
-     * default `center`
-     */
-    alignItems?: AlignItems;
+        /**
+         * Defaults to `none`
+         */
+        scale?: ScaleMode;
 
-    /**
-     * Defaults to `none`
-     */
-    scale?: ScaleMode;
+        // TODO:
+        // processorFn?: (entry: EntryType, image: ImageType) => Promise<ImageType>;
+    };
 
-    // TODO:
-    // processorFn?: (entry: EntryType, image: ImageType) => Promise<ImageType>;
-};
-
-export const DEFAULT_IMAGE_LAYER_OPTIONS: Required<
-    Omit<ImageLayerOptions, 'assetsPath'>
-> &
-    Pick<ImageLayerOptions, 'assetsPath'> = {
+export const DEFAULT_IMAGE_LAYER_OPTIONS: RequiredDeep<ImageLayerOptions<Record<string, string>>> = {
     justifyContent: 'center',
     alignItems: 'center',
     scale: 'none',
+    skip: false,
+    assetsPath: ''
 };
 
 export type Alignment = 'start' | 'center' | 'end';

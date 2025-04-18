@@ -16,7 +16,9 @@ import { htmlToImage } from './htmlToImage';
 import chunk from 'lodash.chunk';
 
 export const vboxPackingFn =
-    (options?: DirectionContainerOptions): PackingFn =>
+    <EntryType extends Record<string, string>>(
+        options?: DirectionContainerOptions<EntryType>,
+    ): PackingFn =>
     (box: BoundingBox, background: ImageType, images: Array<ImageType>) =>
         directionalPackingFn({
             isVertical: true,
@@ -27,7 +29,9 @@ export const vboxPackingFn =
         });
 
 export const hboxPackingFn =
-    (options?: DirectionContainerOptions): PackingFn =>
+    <EntryType extends Record<string, string>>(
+        options?: DirectionContainerOptions<EntryType>,
+    ): PackingFn =>
     (box: BoundingBox, background: ImageType, images: Array<ImageType>) =>
         directionalPackingFn({
             isVertical: false,
@@ -38,13 +42,19 @@ export const hboxPackingFn =
         });
 
 export const gridPackingFn =
-    (options?: GridContainerOptions): PackingFn =>
+    <EntryType extends Record<string, string>>(
+        options?: GridContainerOptions<EntryType>,
+    ): PackingFn =>
     async (
         box: BoundingBox,
         background: ImageType,
         images: Array<ImageType>,
     ) => {
-        const mergedOptions = merge(DEFAULT_GRID_CONTAINER_OPTIONS, options);
+        const mergedOptions = merge(
+            {},
+            DEFAULT_GRID_CONTAINER_OPTIONS,
+            options,
+        );
         const objectFit = SCALE_MODE_TO_OBJECT_FIT[mergedOptions.scale];
 
         const children = await Promise.all(
@@ -106,7 +116,7 @@ export const gridPackingFn =
         return htmlToImage(document, background);
     };
 
-const directionalPackingFn = async ({
+const directionalPackingFn = async <EntryType extends Record<string, string>>({
     isVertical,
     backgroundSize: background,
     images,
@@ -117,9 +127,13 @@ const directionalPackingFn = async ({
     backgroundSize: Size;
     images: Array<ImageType>;
     box: BoundingBox;
-    options?: DirectionContainerOptions;
+    options?: DirectionContainerOptions<EntryType>;
 }): Promise<ImageType> => {
-    const mergedOptions = merge(DEFAULT_DIRECTION_CONTAINER_OPTIONS, options);
+    const mergedOptions = merge(
+        {},
+        DEFAULT_DIRECTION_CONTAINER_OPTIONS,
+        options,
+    );
     const objectFit = SCALE_MODE_TO_OBJECT_FIT[mergedOptions.scale];
 
     const children = await Promise.all(

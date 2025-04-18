@@ -1,31 +1,29 @@
 import { h } from 'virtual-dom';
 import { boundingBoxToPx } from './toPx';
 import {
-    DEFAULT_IMAGE_LAYER_OPTIONS,
     ImageLayerOptions,
     ImageType,
     BoundingBox,
     SCALE_MODE_TO_OBJECT_FIT,
 } from '../types';
-import merge from 'lodash.merge';
 import { htmlToImage } from './htmlToImage';
+import { RequiredDeep } from 'type-fest';
 
-type PlaceImageProps = {
+type PlaceImageProps<EntryType extends Record<string, string>> = {
     image: ImageType;
     box: BoundingBox;
     backgroundSize: { width: number; height: number };
-    options: ImageLayerOptions;
+    options: RequiredDeep<ImageLayerOptions<EntryType>>;
 };
 
-export async function placeImage({
+export const placeImage = async <EntryType extends Record<string, string>>({
     image,
     box,
     backgroundSize,
     options,
-}: PlaceImageProps): Promise<ImageType> {
+}: PlaceImageProps<EntryType>): Promise<ImageType> => {
     const imageBase64 = await image.getBase64('image/png');
-    const mergedOptions = merge(DEFAULT_IMAGE_LAYER_OPTIONS, options);
-    const objectFit = SCALE_MODE_TO_OBJECT_FIT[mergedOptions.scale];
+    const objectFit = SCALE_MODE_TO_OBJECT_FIT[options.scale];
 
     const document = h(
         'div',
@@ -35,8 +33,8 @@ export async function placeImage({
                 position: 'absolute',
                 scale: 1,
 
-                justifyContent: mergedOptions.justifyContent,
-                alignItems: mergedOptions.alignItems,
+                justifyContent: options.justifyContent,
+                alignItems: options.alignItems,
 
                 ...boundingBoxToPx(box),
             },

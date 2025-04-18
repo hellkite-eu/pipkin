@@ -17,4 +17,3 @@
 ### Quality of Life Improvements
 - [ ] Expose logging, warnings, stats and progress status data
 - [ ] Runtime resource configuration
-

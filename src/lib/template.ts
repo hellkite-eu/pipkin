@@ -25,7 +25,15 @@ import {
     TextLayerOptions,
     TextRef,
     GridContainerOptions,
+    DEFAULT_TEXT_LAYER_OPTIONS,
+    FontOptions,
+    DEFAULT_IMAGE_LAYER_OPTIONS,
+    LayerOptions,
+    ContainerOptions,
+    DEFAULT_CONTAINER_OPTIONS,
 } from './types';
+import merge from 'lodash.merge';
+import { RequiredDeep } from 'type-fest';
 
 type RequiredTemplateOptions = {
     height: number;
@@ -53,7 +61,7 @@ export type LayerFnContext = {
 export type LayerFn<EntryType> = (
     entry: EntryType,
     context: LayerFnContext,
-) => Promise<ImageType>;
+) => Promise<ImageType | undefined>;
 
 export type TemplateLayerFn<EntryType extends Record<string, string>> = (
     template: Template<EntryType>,
@@ -118,15 +126,28 @@ export class Template<EntryType extends Record<string, string>> {
             return template.render(entry);
         });
 
-    // TODO: logic for rendering debug helpers
     container = (
         imagesFn: (entry: EntryType) => Promise<Array<ImageType>>,
         box: BoundingBox,
         packingFn: PackingFn,
+        options?: ContainerOptions<EntryType>,
     ): this =>
         this.layer(async (entry: EntryType, { debugMode }) => {
+            const mergedOptions: RequiredDeep<ContainerOptions<EntryType>>= merge(
+                {},
+                DEFAULT_CONTAINER_OPTIONS,
+                options,
+            );
+            if (this.shouldSkipLayerForEntry(entry, mergedOptions)) {
+                return undefined;
+            }
+
             const images = await imagesFn(entry);
-            const result = await packingFn(box, this.shadowBackground(), images);
+            const result = await packingFn(
+                box,
+                this.shadowBackground(),
+                images,
+            );
 
             // debug mode
             if (debugMode) {
@@ -143,33 +164,43 @@ export class Template<EntryType extends Record<string, string>> {
     hbox = (
         imagesFn: (entry: EntryType) => Promise<Array<ImageType>>,
         box: BoundingBox,
-        options?: DirectionContainerOptions,
-    ): this => this.container(imagesFn, box, hboxPackingFn(options));
+        options?: DirectionContainerOptions<EntryType>,
+    ): this => this.container(imagesFn, box, hboxPackingFn(options), options);
 
     vbox = (
         imagesFn: (entry: EntryType) => Promise<Array<ImageType>>,
         box: BoundingBox,
-        options?: DirectionContainerOptions,
-    ): this => this.container(imagesFn, box, vboxPackingFn(options));
+        options?: DirectionContainerOptions<EntryType>,
+    ): this => this.container(imagesFn, box, vboxPackingFn(options), options);
 
     grid = (
         imagesFn: (entry: EntryType) => Promise<Array<ImageType>>,
         box: BoundingBox,
-        options?: GridContainerOptions,
-    ): this => this.container(imagesFn, box, gridPackingFn(options));
+        options?: GridContainerOptions<EntryType>,
+    ): this => this.container(imagesFn, box, gridPackingFn(options), options);
 
     image = (
         ref: ImageRef<EntryType>,
         box: BoundingBox,
-        options: ImageLayerOptions,
+        options: ImageLayerOptions<EntryType>,
     ): this =>
         this.layer(async (entry, { debugMode }) => {
-            const image = await this.pathFromImageRef(entry, ref, options);
+            const mergedOptions: RequiredDeep<ImageLayerOptions<EntryType>>= merge(
+                {},
+                DEFAULT_IMAGE_LAYER_OPTIONS,
+                { assetsPath: this.defaultAssetsPath },
+                options,
+            );
+            if (this.shouldSkipLayerForEntry(entry, mergedOptions)) {
+                return undefined;
+            }
+
+            const image = await this.pathFromImageRef(entry, ref, mergedOptions);
             const result = await placeImage({
                 image,
                 box,
                 backgroundSize: this.backgroundSize,
-                options,
+                options: mergedOptions,
             });
 
             // debug mode
@@ -191,16 +222,30 @@ export class Template<EntryType extends Record<string, string>> {
     text = (
         ref: TextRef<EntryType>,
         box: BoundingBox,
-        options?: TextLayerOptions,
+        options?: TextLayerOptions<EntryType>,
     ): this =>
         this.layer(async (entry, { debugMode }) => {
-            const text = this.textFromImageRef(entry, ref);
-            const fontFamily =
-                options?.font?.family ?? this.defaultFontFamily ?? 'Arial';
-            const result = await renderText(text, box, this.backgroundSize, {
-                ...options,
-                font: { ...options?.font, family: fontFamily },
-            });
+            const mergedOptions = merge(
+                {},
+                DEFAULT_TEXT_LAYER_OPTIONS,
+                {
+                    font: {
+                        family: this.defaultFontFamily,
+                    },
+                } as FontOptions,
+                options,
+            );
+            if (this.shouldSkipLayerForEntry(entry, mergedOptions)) {
+                return undefined;
+            }
+
+            const text = this.textFromTextRef(entry, ref);
+            const result = await renderText(
+                text,
+                box,
+                this.backgroundSize,
+                mergedOptions,
+            );
 
             // debug mode
             if (debugMode) {
@@ -227,13 +272,14 @@ export class Template<EntryType extends Record<string, string>> {
     }
 
     private async renderLayers(entry: EntryType): Promise<Array<ImageType>> {
-        return Promise.all(
+        const results = await Promise.all(
             this.layers.map(layerFn =>
                 layerFn(entry, {
                     debugMode: this.debugMode,
                 }),
             ),
         );
+        return results.filter(result => !!result);
     }
 
     async render(
@@ -306,12 +352,11 @@ export class Template<EntryType extends Record<string, string>> {
     private pathFromImageRef = async (
         entry: EntryType,
         ref: ImageRef<EntryType>,
-        options: ImageLayerOptions,
+        options: RequiredDeep<ImageLayerOptions<EntryType>>,
     ): Promise<ImageType> => {
-        const assetsPath = options?.assetsPath ?? this.defaultAssetsPath;
         const pathSegments = [];
-        if (assetsPath) {
-            pathSegments.push(assetsPath);
+        if (options.assetsPath) {
+            pathSegments.push(options.assetsPath);
         }
 
         if ('buffer' in ref) {
@@ -331,7 +376,7 @@ export class Template<EntryType extends Record<string, string>> {
         }
     };
 
-    private textFromImageRef = (
+    private textFromTextRef = (
         entry: EntryType,
         ref: TextRef<EntryType>,
     ): string => {
@@ -345,6 +390,11 @@ export class Template<EntryType extends Record<string, string>> {
             throw new Error('Unknown TextRef variant');
         }
     };
-}
 
-// TODO: Ledger of actions applied to the image like a logging feed
+    private shouldSkipLayerForEntry = (entry: EntryType, options: LayerOptions<EntryType>): boolean => {
+        if (typeof options.skip === 'function') {
+            return options.skip(entry);
+        }
+        return options.skip ?? false;
+    }
+}

@@ -1,22 +1,17 @@
 import { h, VNode } from 'virtual-dom';
-import {
-    DEFAULT_TEXT_LAYER_OPTIONS,
-    ImageType,
-    BoundingBox,
-    Size,
-    TextLayerOptions,
-} from '../types';
+import { ImageType, BoundingBox, Size, TextLayerOptions } from '../types';
 import { boundingBoxToPx, toPx } from './toPx';
 import { htmlToImage } from './htmlToImage';
+import { RequiredDeep } from 'type-fest';
 
-export const renderText = async (
+export const renderText = async <EntryType extends Record<string, string>>(
     text: string,
     box: BoundingBox,
     backgroundSize: Size,
-    options?: TextLayerOptions,
+    options: RequiredDeep<TextLayerOptions<EntryType>>,
 ): Promise<ImageType> => {
     let textChildren: Array<string | VNode> = [text];
-    for (const [word, image] of Object.entries(options?.replacement ?? {})) {
+    for (const [word, image] of Object.entries(options.replacement)) {
         const regex = new RegExp(word, 'gi');
         const imageBase64 = await image.getBase64('image/png');
 
@@ -36,7 +31,7 @@ export const renderText = async (
                                 style: {
                                     display: 'inline',
                                     verticalAlign: 'middle',
-                                    height: toPx(options?.font?.size ?? 28), // TODO: use constant
+                                    height: toPx(options.font.size),
                                     width: 'auto',
                                 },
                                 src: imageBase64,
@@ -60,10 +55,8 @@ export const renderText = async (
                 overflow: 'visible',
                 position: 'absolute',
 
-                justifyContent:
-                    options?.xAlign ?? DEFAULT_TEXT_LAYER_OPTIONS.xAlign,
-                alignItems:
-                    options?.yAlign ?? DEFAULT_TEXT_LAYER_OPTIONS.yAlign,
+                justifyContent: options.justifyContent,
+                alignItems: options.alignItems,
 
                 ...boundingBoxToPx(box),
             },
@@ -77,11 +70,11 @@ export const renderText = async (
                         overflowWrap: 'word-wrap',
                         whiteSpace: 'normal',
 
-                        color: options?.color,
-                        fontFamily: options?.font?.family,
-                        fontSize: options?.font?.size,
-                        fontStyle: options?.font?.italic ? 'italic' : undefined,
-                        fontWeight: options?.font?.bold ? 'bold' : undefined,
+                        color: options.color,
+                        fontFamily: options.font.family,
+                        fontSize: options.font.size,
+                        fontStyle: options.font.italic ? 'italic' : undefined,
+                        fontWeight: options.font.bold ? 'bold' : undefined,
                     },
                 },
                 textChildren,

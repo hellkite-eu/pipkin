@@ -1,3 +1,5 @@
+import type { RequiredDeep } from 'type-fest';
+import { LayerOptions } from './layer';
 import { ReplacementMap } from './replacement';
 
 export type TextRef<EntryType> =
@@ -5,59 +7,52 @@ export type TextRef<EntryType> =
     | { text: string }
     | { textFn: (entry: EntryType) => string };
 
-export type TextLayerOptions = {
-    font?: {
-        /**
-         * Size of font is represented in pixels
-         */
-        size?: number;
-        /**
-         * Either use one supported by canvas
-         * or load a custom one before rendering
-         */
-        family?: string;
-        /**
-         * Warning: Not supported by all fonts
-         */
-        bold?: boolean;
-        /**
-         * Warning: Not supported by all fonts
-         */
-        italic?: boolean;
-    };
-
-    color?: string;
-
-    // TODO: processor fn
-    replacement?: ReplacementMap;
-
+export type FontOptions = {
     /**
-     * default `center`
+     * Size of font is represented in pixels
      */
-    xAlign?:
-        | 'left'
-        | 'center'
-        | 'right'
-        | 'justify'
-        | 'justify-left'
-        | 'justify-center'
-        | 'justify-right';
-
+    size?: number;
     /**
-     * default `center`
+     * Either use one supported by canvas
+     * or load a custom one before rendering
      */
-    yAlign?:
-        | 'left'
-        | 'center'
-        | 'right'
-        | 'justify'
-        | 'justify-left'
-        | 'justify-center'
-        | 'justify-right';
+    family?: string;
+    /**
+     * Warning: Not supported by all fonts
+     */
+    bold?: boolean;
+    /**
+     * Warning: Not supported by all fonts
+     */
+    italic?: boolean;
 };
 
-// TODO: all required
-export const DEFAULT_TEXT_LAYER_OPTIONS: TextLayerOptions = {
-    xAlign: 'center',
-    yAlign: 'center',
+export type TextLayerOptions<EntryType extends Record<string, string>> =
+    LayerOptions<EntryType> & {
+        font?: FontOptions;
+
+        color?: string;
+
+        // TODO: processor fn
+        replacement?: ReplacementMap;
+    };
+
+export const DEFAULT_FONT: Required<
+FontOptions
+> = {
+    size: 28,
+    family: 'Arial',
+    bold: false,
+    italic: false,
+};
+
+export const DEFAULT_TEXT_LAYER_OPTIONS: RequiredDeep<
+    TextLayerOptions<Record<string, string>>
+> = {
+    justifyContent: 'center',
+    alignItems: 'center',
+    font: DEFAULT_FONT,
+    color: 'black',
+    replacement: {},
+    skip: false,
 };

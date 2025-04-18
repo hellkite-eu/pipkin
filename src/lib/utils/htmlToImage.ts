@@ -8,7 +8,6 @@ export const htmlToImage = async (
     backgroundSize: Size,
 ): Promise<ImageType> => {
     const html = createElement(document).toString();
-    // TODO: extract this in a dif function
     const image = await nodeHtmlToImage({
         html,
         transparent: true,

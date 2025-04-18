@@ -1,7 +1,7 @@
-import { TextLayerOptions } from "../types";
+import { FontOptions } from "../types";
 
 export const buildFontString = (
-    font: TextLayerOptions['font'],
+    font: FontOptions,
     defaultFontFamily?: string,
 ): string => {
     const fragments: string[] = [];
