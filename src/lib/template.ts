@@ -68,6 +68,7 @@ export type TemplateLayerFn<EntryType extends Record<string, string>> = (
 ) => Template<EntryType>;
 
 export class Template<EntryType extends Record<string, string>> {
+    private readonly fonts: Record<string, string> = {};
     private readonly layers: LayerFn<EntryType>[] = [];
     private readonly background: ImageType;
     private debugMode: boolean = false;
@@ -133,11 +134,8 @@ export class Template<EntryType extends Record<string, string>> {
         options?: ContainerOptions<EntryType>,
     ): this =>
         this.layer(async (entry: EntryType, { debugMode }) => {
-            const mergedOptions: RequiredDeep<ContainerOptions<EntryType>>= merge(
-                {},
-                DEFAULT_CONTAINER_OPTIONS,
-                options,
-            );
+            const mergedOptions: RequiredDeep<ContainerOptions<EntryType>> =
+                merge({}, DEFAULT_CONTAINER_OPTIONS, options);
             if (this.shouldSkipLayerForEntry(entry, mergedOptions)) {
                 return undefined;
             }
@@ -185,17 +183,22 @@ export class Template<EntryType extends Record<string, string>> {
         options: ImageLayerOptions<EntryType>,
     ): this =>
         this.layer(async (entry, { debugMode }) => {
-            const mergedOptions: RequiredDeep<ImageLayerOptions<EntryType>>= merge(
-                {},
-                DEFAULT_IMAGE_LAYER_OPTIONS,
-                { assetsPath: this.defaultAssetsPath },
-                options,
-            );
+            const mergedOptions: RequiredDeep<ImageLayerOptions<EntryType>> =
+                merge(
+                    {},
+                    DEFAULT_IMAGE_LAYER_OPTIONS,
+                    { assetsPath: this.defaultAssetsPath },
+                    options,
+                );
             if (this.shouldSkipLayerForEntry(entry, mergedOptions)) {
                 return undefined;
             }
 
-            const image = await this.pathFromImageRef(entry, ref, mergedOptions);
+            const image = await this.pathFromImageRef(
+                entry,
+                ref,
+                mergedOptions,
+            );
             const result = await placeImage({
                 image,
                 box,
@@ -214,6 +217,7 @@ export class Template<EntryType extends Record<string, string>> {
 
             return result;
         });
+
     loadImage = async (imagePath: string | Buffer): Promise<ImageType> => {
         const image = (await Jimp.read(imagePath)) as unknown as ImageType;
         return image;
@@ -245,6 +249,7 @@ export class Template<EntryType extends Record<string, string>> {
                 box,
                 this.backgroundSize,
                 mergedOptions,
+                this.fonts,
             );
 
             // debug mode
@@ -260,9 +265,8 @@ export class Template<EntryType extends Record<string, string>> {
         });
 
     font(path: fs.PathLike, name: string): this {
-        registerFont(path.toString(), {
-            family: name,
-        });
+        // TODO: pass font weight and font style as well
+        this.fonts[name] = fs.readFileSync(path.toString()).toString('base64');
         return this;
     }
 
@@ -391,10 +395,13 @@ export class Template<EntryType extends Record<string, string>> {
         }
     };
 
-    private shouldSkipLayerForEntry = (entry: EntryType, options: LayerOptions<EntryType>): boolean => {
+    private shouldSkipLayerForEntry = (
+        entry: EntryType,
+        options: LayerOptions<EntryType>,
+    ): boolean => {
         if (typeof options.skip === 'function') {
             return options.skip(entry);
         }
         return options.skip ?? false;
-    }
+    };
 }

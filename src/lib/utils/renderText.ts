@@ -9,6 +9,7 @@ export const renderText = async <EntryType extends Record<string, string>>(
     box: BoundingBox,
     backgroundSize: Size,
     options: RequiredDeep<TextLayerOptions<EntryType>>,
+    fonts: Record<string, string>,
 ): Promise<ImageType> => {
     let textChildren: Array<string | VNode> = [text];
     for (const [word, image] of Object.entries(options.replacement)) {
@@ -47,7 +48,7 @@ export const renderText = async <EntryType extends Record<string, string>>(
         textChildren = tmpChildren;
     }
 
-    const document = h(
+    const content = h(
         'div',
         {
             style: {
@@ -81,6 +82,24 @@ export const renderText = async <EntryType extends Record<string, string>>(
             ),
         ],
     );
+
+    const document = h('html', [
+        h('head', [
+            h(
+                'style',
+                Object.entries(fonts)
+                    .map(
+                        ([name, data]) =>
+                            `@font-face {
+                                font-family: '${name}';
+                                src: url(data:font/ttf;base64,${data}) format('truetype');
+                            }`,
+                    )
+                    .join('\n'),
+            ),
+        ]),
+        h('body', [content]),
+    ]);
 
     return htmlToImage(document, backgroundSize);
 };
