@@ -33,6 +33,11 @@ export type TextLayerOptions<EntryType extends Record<string, string>> =
 
         color?: string;
 
+        border?: {
+            width?: number;
+            color?: string;
+        };
+
         // TODO: processor fn
         replacement?: ReplacementMap;
     };
@@ -55,4 +60,8 @@ export const DEFAULT_TEXT_LAYER_OPTIONS: RequiredDeep<
     color: 'black',
     replacement: {},
     skip: false,
+    border: {
+        width: 0,
+        color: 'black',
+    }
 };

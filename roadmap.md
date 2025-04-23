@@ -5,7 +5,7 @@
 - [ ] Storage adaptors for fs, web, browser, s3, etc 
 - [ ] Draw geometry
 - [ ] Noise/texture overlays
-- [ ] Text border
+- [x] Text border
 
 ### Bugfixes
 - [x] Broken custom fonts

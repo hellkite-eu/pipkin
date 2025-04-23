@@ -76,6 +76,8 @@ export const renderText = async <EntryType extends Record<string, string>>(
                         fontSize: options.font.size,
                         fontStyle: options.font.italic ? 'italic' : undefined,
                         fontWeight: options.font.bold ? 'bold' : undefined,
+
+                        '-webkit-text-stroke': `${options.border.width}px ${options.border.color}`
                     },
                 },
                 textChildren,

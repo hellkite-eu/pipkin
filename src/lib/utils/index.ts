@@ -1,4 +1,3 @@
-export * from './buildFontString';
 export * from './container';
 export * from './drawBoundingBox';
 export * from './placeImage';
