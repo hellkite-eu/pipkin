@@ -9,11 +9,12 @@
 
 ### Bugfixes
 - [x] Broken custom fonts
+- [ ] keep-ration scale option seem broken
 
 ### Optimizations
 - [ ] Optional image registry that reduce repeating loading of same images
 - [ ] Stream processing support
-- [ ] Overlay the entire card in HTML and render to image only once
+- [x] Overlay the entire card in HTML and render to image only once
 
 
 ### Quality of Life Improvements

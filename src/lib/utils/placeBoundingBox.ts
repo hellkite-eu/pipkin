@@ -1,13 +1,9 @@
 import { h } from 'virtual-dom';
-import { htmlToImage } from './htmlToImage';
 import { boundingBoxToPx } from './toPx';
-import { ImageType, Size, BoundingBox } from '../types';
+import { BoundingBox, HyperNode } from '../types';
 
-export const drawBoundingBox = async (
-    box: BoundingBox,
-    imageSize: Size,
-): Promise<ImageType> => {
-    const document = h(
+export const placeBoundingBox = async (box: BoundingBox): Promise<HyperNode> => {
+    return h(
         'div',
         {
             style: {
@@ -20,6 +16,4 @@ export const drawBoundingBox = async (
         },
         [],
     );
-
-    return htmlToImage(document, imageSize);
 };

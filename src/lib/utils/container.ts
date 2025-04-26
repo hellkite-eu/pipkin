@@ -2,28 +2,25 @@ import { h } from 'virtual-dom';
 import {
     DEFAULT_DIRECTION_CONTAINER_OPTIONS,
     DirectionContainerOptions,
-    ImageType,
     PackingFn,
     BoundingBox,
     SCALE_MODE_TO_OBJECT_FIT,
-    Size,
     GridContainerOptions,
     DEFAULT_GRID_CONTAINER_OPTIONS,
+    HyperNode,
 } from '../types';
 import { boundingBoxToPx, toPx } from './toPx';
 import merge from 'lodash.merge';
-import { htmlToImage } from './htmlToImage';
 import chunk from 'lodash.chunk';
 
 export const vboxPackingFn =
     <EntryType extends Record<string, string>>(
         options?: DirectionContainerOptions<EntryType>,
     ): PackingFn =>
-    (box: BoundingBox, background: ImageType, images: Array<ImageType>) =>
+    (box: BoundingBox, elements: Array<HyperNode>) =>
         directionalPackingFn({
             isVertical: true,
-            backgroundSize: background,
-            images,
+            elements,
             box,
             options,
         });
@@ -32,11 +29,10 @@ export const hboxPackingFn =
     <EntryType extends Record<string, string>>(
         options?: DirectionContainerOptions<EntryType>,
     ): PackingFn =>
-    (box: BoundingBox, background: ImageType, images: Array<ImageType>) =>
+    (box: BoundingBox, elements: Array<HyperNode>) =>
         directionalPackingFn({
             isVertical: false,
-            backgroundSize: background,
-            images,
+            elements,
             box,
             options,
         });
@@ -45,41 +41,15 @@ export const gridPackingFn =
     <EntryType extends Record<string, string>>(
         options?: GridContainerOptions<EntryType>,
     ): PackingFn =>
-    async (
-        box: BoundingBox,
-        background: ImageType,
-        images: Array<ImageType>,
-    ) => {
+    async (box: BoundingBox, elements: Array<HyperNode>) => {
         const mergedOptions = merge(
             {},
             DEFAULT_GRID_CONTAINER_OPTIONS,
             options,
         );
-        const objectFit = SCALE_MODE_TO_OBJECT_FIT[mergedOptions.scale];
-
-        const children = await Promise.all(
-            images.map(async image => {
-                const imageBase64 = await image.getBase64('image/png');
-                return h(
-                    'img',
-                    {
-                        style: {
-                            objectFit,
-                            flex: '1 1 auto',
-                            minWidth: 0,
-                            minHeight: 0,
-                            maxWidth: '100%',
-                            maxHeight: '100%',
-                        },
-                        src: imageBase64,
-                    },
-                    [],
-                );
-            }),
-        );
 
         const items = [];
-        for (const subset of chunk(children)) {
+        for (const subset of chunk(elements)) {
             items.push(
                 h(
                     'div',
@@ -98,7 +68,7 @@ export const gridPackingFn =
                 ),
             );
         }
-        const document = h(
+        return h(
             'div',
             {
                 style: {
@@ -112,51 +82,26 @@ export const gridPackingFn =
             },
             items,
         );
-
-        return htmlToImage(document, background);
     };
 
 const directionalPackingFn = async <EntryType extends Record<string, string>>({
     isVertical,
-    backgroundSize: background,
-    images,
+    elements,
     box,
     options,
 }: {
     isVertical: boolean;
-    backgroundSize: Size;
-    images: Array<ImageType>;
+    elements: Array<HyperNode>;
     box: BoundingBox;
     options?: DirectionContainerOptions<EntryType>;
-}): Promise<ImageType> => {
+}): Promise<HyperNode> => {
     const mergedOptions = merge(
         {},
         DEFAULT_DIRECTION_CONTAINER_OPTIONS,
         options,
     );
-    const objectFit = SCALE_MODE_TO_OBJECT_FIT[mergedOptions.scale];
 
-    const children = await Promise.all(
-        images.map(async image => {
-            const imageBase64 = await image.getBase64('image/png');
-            return h(
-                'img',
-                {
-                    style: {
-                        objectFit,
-                        flex: '1 1 auto',
-                        minWidth: 0,
-                        minHeight: 0,
-                        maxWidth: '100%',
-                        maxHeight: '100%',
-                    },
-                    src: imageBase64,
-                },
-                [],
-            );
-        }),
-    );
-    const document = h(
+    return h(
         'div',
         {
             style: {
@@ -172,8 +117,6 @@ const directionalPackingFn = async <EntryType extends Record<string, string>>({
                 ...boundingBoxToPx(box),
             },
         },
-        children,
+        elements,
     );
-
-    return htmlToImage(document, background);
 };

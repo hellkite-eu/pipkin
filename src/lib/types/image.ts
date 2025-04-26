@@ -5,6 +5,10 @@ import { RequiredDeep } from 'type-fest';
 
 export type ImageType = JimpInstance;
 
+/**
+ * Static images -> `buffer`, `path`, `absolutePath`
+ * Dynamic images -> `key`, `pathFn`
+ */
 export type ImageRef<EntryType extends Record<string, string>> =
     | { buffer: Buffer }
     | { path: string }
@@ -35,6 +39,8 @@ export const DEFAULT_IMAGE_LAYER_OPTIONS: RequiredDeep<ImageLayerOptions<Record<
     skip: false,
     assetsPath: ''
 };
+
+export type ImageLayerSpecificOptions<EntryType extends Record<string, string>> = Omit<ImageLayerOptions<EntryType>, keyof LayerOptions<EntryType>>;
 
 export type Alignment = 'start' | 'center' | 'end';
 

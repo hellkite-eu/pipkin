@@ -3,15 +3,17 @@ import { parse as parseCsv } from 'papaparse';
 import { Jimp, rgbaToInt } from 'jimp';
 import camelCase from 'lodash.camelcase';
 import concat from 'lodash.concat';
-import { registerFont } from 'canvas';
 import path from 'path';
 import {
-    drawBoundingBox,
+    placeBoundingBox,
     gridPackingFn,
     hboxPackingFn,
+    htmlToImage,
     placeImage,
-    renderText,
+    placeText,
     vboxPackingFn,
+    prepareText,
+    prepareImage,
 } from './utils';
 import {
     DirectionContainerOptions,
@@ -31,9 +33,15 @@ import {
     LayerOptions,
     ContainerOptions,
     DEFAULT_CONTAINER_OPTIONS,
+    HyperNode,
+    ElementsFn,
+    ElementRef,
+    ImageLayerSpecificOptions,
 } from './types';
 import merge from 'lodash.merge';
 import { RequiredDeep } from 'type-fest';
+import { h } from 'virtual-dom';
+import flatten from 'lodash.flatten';
 
 type RequiredTemplateOptions = {
     height: number;
@@ -61,7 +69,7 @@ export type LayerFnContext = {
 export type LayerFn<EntryType> = (
     entry: EntryType,
     context: LayerFnContext,
-) => Promise<ImageType | undefined>;
+) => Promise<Array<HyperNode>>;
 
 export type TemplateLayerFn<EntryType extends Record<string, string>> = (
     template: Template<EntryType>,
@@ -102,13 +110,6 @@ export class Template<EntryType extends Record<string, string>> {
         });
     }
 
-    private shadowBackground(): ImageType {
-        return new Jimp({
-            width: this.background.width,
-            height: this.background.height,
-        });
-    }
-
     private get backgroundSize(): Size {
         return {
             width: this.background.width,
@@ -122,13 +123,24 @@ export class Template<EntryType extends Record<string, string>> {
     }
 
     template = (fn: TemplateLayerFn<EntryType>): this =>
-        this.layer(entry => {
+        this.layer(async entry => {
             const template = fn(this.shadowTemplate());
-            return template.render(entry);
+            const image = await template.render(entry);
+            return [
+                await placeImage({
+                    image,
+                    box: {
+                        left: 0,
+                        top: 0,
+                        ...this.backgroundSize,
+                    },
+                    options: DEFAULT_IMAGE_LAYER_OPTIONS,
+                }),
+            ];
         });
 
     container = (
-        imagesFn: (entry: EntryType) => Promise<Array<ImageType>>,
+        elementsFn: ElementsFn,
         box: BoundingBox,
         packingFn: PackingFn,
         options?: ContainerOptions<EntryType>,
@@ -137,45 +149,39 @@ export class Template<EntryType extends Record<string, string>> {
             const mergedOptions: RequiredDeep<ContainerOptions<EntryType>> =
                 merge({}, DEFAULT_CONTAINER_OPTIONS, options);
             if (this.shouldSkipLayerForEntry(entry, mergedOptions)) {
-                return undefined;
+                return [];
             }
 
-            const images = await imagesFn(entry);
-            const result = await packingFn(
-                box,
-                this.shadowBackground(),
-                images,
-            );
+            const elementRefs = await elementsFn(entry);
+            const elements = await Promise.all(elementRefs.map(elementRef => this.elementFromElementRef(entry, elementRef)))
+            const result = await packingFn(box, elements);
 
             // debug mode
             if (debugMode) {
-                const debugImage = await drawBoundingBox(
-                    box,
-                    this.backgroundSize,
-                );
-                return debugImage.composite(result);
+                const debugImage = await placeBoundingBox(box);
+                return [result, debugImage];
             }
 
-            return result;
+            return [result];
         });
 
     hbox = (
-        imagesFn: (entry: EntryType) => Promise<Array<ImageType>>,
+        elementsFn: ElementsFn,
         box: BoundingBox,
         options?: DirectionContainerOptions<EntryType>,
-    ): this => this.container(imagesFn, box, hboxPackingFn(options), options);
+    ): this => this.container(elementsFn, box, hboxPackingFn(options), options);
 
     vbox = (
-        imagesFn: (entry: EntryType) => Promise<Array<ImageType>>,
+        elementsFn: ElementsFn,
         box: BoundingBox,
         options?: DirectionContainerOptions<EntryType>,
-    ): this => this.container(imagesFn, box, vboxPackingFn(options), options);
+    ): this => this.container(elementsFn, box, vboxPackingFn(options), options);
 
     grid = (
-        imagesFn: (entry: EntryType) => Promise<Array<ImageType>>,
+        elementsFn: ElementsFn,
         box: BoundingBox,
         options?: GridContainerOptions<EntryType>,
-    ): this => this.container(imagesFn, box, gridPackingFn(options), options);
+    ): this => this.container(elementsFn, box, gridPackingFn(options), options);
 
     image = (
         ref: ImageRef<EntryType>,
@@ -191,10 +197,10 @@ export class Template<EntryType extends Record<string, string>> {
                     options,
                 );
             if (this.shouldSkipLayerForEntry(entry, mergedOptions)) {
-                return undefined;
+                return [];
             }
 
-            const image = await this.pathFromImageRef(
+            const image = await this.imageFromImageRef(
                 entry,
                 ref,
                 mergedOptions,
@@ -202,20 +208,16 @@ export class Template<EntryType extends Record<string, string>> {
             const result = await placeImage({
                 image,
                 box,
-                backgroundSize: this.backgroundSize,
                 options: mergedOptions,
             });
 
             // debug mode
             if (debugMode) {
-                const debugImage = await drawBoundingBox(
-                    box,
-                    this.backgroundSize,
-                );
-                return debugImage.composite(result);
+                const debugImage = await placeBoundingBox(box);
+                return [result, debugImage];
             }
 
-            return result;
+            return [result];
         });
 
     loadImage = async (imagePath: string | Buffer): Promise<ImageType> => {
@@ -240,28 +242,23 @@ export class Template<EntryType extends Record<string, string>> {
                 options,
             );
             if (this.shouldSkipLayerForEntry(entry, mergedOptions)) {
-                return undefined;
+                return [];
             }
 
             const text = this.textFromTextRef(entry, ref);
-            const result = await renderText(
+            const result = await placeText({
                 text,
                 box,
-                this.backgroundSize,
-                mergedOptions,
-                this.fonts,
-            );
+                options: mergedOptions,
+            });
 
             // debug mode
             if (debugMode) {
-                const debugImage = await drawBoundingBox(
-                    box,
-                    this.backgroundSize,
-                );
-                return debugImage.composite(result);
+                const debugImage = await placeBoundingBox(box);
+                return [result, debugImage];
             }
 
-            return result;
+            return [result];
         });
 
     font(path: fs.PathLike, name: string): this {
@@ -275,7 +272,7 @@ export class Template<EntryType extends Record<string, string>> {
         return this;
     }
 
-    private async renderLayers(entry: EntryType): Promise<Array<ImageType>> {
+    async render(entry: EntryType): Promise<ImageType> {
         const results = await Promise.all(
             this.layers.map(layerFn =>
                 layerFn(entry, {
@@ -283,18 +280,28 @@ export class Template<EntryType extends Record<string, string>> {
                 }),
             ),
         );
-        return results.filter(result => !!result);
-    }
-
-    async render(
-        entry: EntryType,
-        options?: RenderOptions<EntryType>,
-    ): Promise<ImageType> {
-        const renderedLayers = await this.renderLayers(entry);
-        return renderedLayers.reduce(
-            (acc, layerRender) => acc.composite(layerRender),
-            this.background.clone(),
-        );
+        const document = h('html', [
+            h('head', [
+                h(
+                    'style',
+                    Object.entries(this.fonts)
+                        .map(
+                            ([name, data]) =>
+                                `@font-face {
+                                        font-family: '${name}';
+                                        src: url(data:font/ttf;base64,${data}) format('truetype');
+                                    }`,
+                        )
+                        .join('\n'),
+                ),
+            ]),
+            h(
+                'body',
+                flatten(results),
+            ),
+        ]);
+        const renderedLayers = await htmlToImage(document, this.backgroundSize);
+        return this.background.clone().composite(renderedLayers);
     }
 
     async renderAll(
@@ -305,7 +312,7 @@ export class Template<EntryType extends Record<string, string>> {
             entries.map(
                 entry =>
                     new Promise<Array<ImageType>>(resolve =>
-                        this.render(entry, options).then(image => {
+                        this.render(entry).then(image => {
                             if (!options?.duplication) {
                                 return resolve([image]);
                             }
@@ -353,10 +360,10 @@ export class Template<EntryType extends Record<string, string>> {
         });
     }
 
-    private pathFromImageRef = async (
+    private imageFromImageRef = async (
         entry: EntryType,
         ref: ImageRef<EntryType>,
-        options: RequiredDeep<ImageLayerOptions<EntryType>>,
+        options: RequiredDeep<ImageLayerSpecificOptions<EntryType>>,
     ): Promise<ImageType> => {
         const pathSegments = [];
         if (options.assetsPath) {
@@ -390,6 +397,29 @@ export class Template<EntryType extends Record<string, string>> {
             return ref.text;
         } else if ('textFn' in ref) {
             return ref.textFn(entry);
+        } else {
+            throw new Error('Unknown TextRef variant');
+        }
+    };
+
+    private elementFromElementRef = async (
+        entry: EntryType,
+        ref: ElementRef<EntryType>,
+    ): Promise<HyperNode> => {
+        if ('text' in ref) {
+            const options = merge({}, DEFAULT_TEXT_LAYER_OPTIONS, ref.options);
+            return prepareText({
+                text: this.textFromTextRef(entry, ref.text),
+                options,
+            });
+        } else if ('image' in ref) {
+            const options = merge({}, DEFAULT_IMAGE_LAYER_OPTIONS, ref.options);
+            return prepareImage({
+                image: await this.imageFromImageRef(entry, ref.image, options),
+                options,
+            });
+        } else if ('node' in ref) {
+            return ref.node
         } else {
             throw new Error('Unknown TextRef variant');
         }

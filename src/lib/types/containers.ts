@@ -1,8 +1,10 @@
 import { RequiredDeep } from 'type-fest';
 import { BoundingBox } from './boundingBox';
-import { ImageType } from './image';
+import { ImageLayerSpecificOptions, ImageRef, ImageType } from './image';
 import { ScaleMode } from './scale';
 import { LayerOptions } from './layer';
+import { HyperNode } from './hypernode';
+import { TextLayerSpecificOptions, TextRef } from './text';
 
 export type ContainerOptions<EntryType extends Record<string, string>> =
     LayerOptions<EntryType> & {
@@ -65,8 +67,24 @@ export const DEFAULT_GRID_CONTAINER_OPTIONS: RequiredDeep<
     direction: 'rows',
 };
 
+export type ElementRef<EntryType extends Record<string, string>> =
+    | {
+          image: ImageRef<EntryType>;
+          options?: ImageLayerSpecificOptions<EntryType>;
+      }
+    | {
+          text: TextRef<EntryType>;
+          options?: TextLayerSpecificOptions<EntryType>;
+      }
+    | {
+          node: HyperNode;
+      };
+
+export type ElementsFn = <EntryType extends Record<string, string>>(
+    entry: EntryType,
+) => Promise<Array<ElementRef<EntryType>>>;
+
 export type PackingFn = (
     box: BoundingBox,
-    background: ImageType,
-    images: Array<ImageType>,
-) => Promise<ImageType>;
+    elements: Array<HyperNode>,
+) => Promise<HyperNode>;

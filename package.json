@@ -1,6 +1,6 @@
 {
     "name": "@hellkite/pipkin",
-    "version": "0.6.2",
+    "version": "0.7.0",
     "description": "Library for board game card generation",
     "main": "build/src/index.js",
     "types": "build/src/index.d.ts",
@@ -20,6 +20,7 @@
         "lodash.camelcase": "^4.3.0",
         "lodash.chunk": "^4.2.0",
         "lodash.concat": "^4.5.0",
+        "lodash.flatten": "^4.4.0",
         "lodash.merge": "^4.6.2",
         "node-html-to-image": "^5.0.0",
         "papaparse": "^5.5.2",
@@ -30,6 +31,7 @@
         "@types/lodash.camelcase": "^4.3.9",
         "@types/lodash.chunk": "^4.2.9",
         "@types/lodash.concat": "^4.5.9",
+        "@types/lodash.flatten": "^4.4.9",
         "@types/lodash.merge": "^4.6.9",
         "@types/node": "^22.7.5",
         "@types/papaparse": "^5.3.15",

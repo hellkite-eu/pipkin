@@ -8,3 +8,4 @@ export * from './text';
 export * from './boundingBox';
 export * from './css';
 export * from './layer';
+export * from './hypernode';
