@@ -1,5 +1,5 @@
 import type { RequiredDeep } from 'type-fest';
-import { LayerOptions } from './layer';
+import { DEFAULT_LAYER_OPTIONS, LayerOptions } from './layer';
 import { Replacement } from '../replacement';
 
 /**
@@ -60,12 +60,10 @@ export type TextLayerSpecificOptions<EntryType extends Record<string, string>> =
 export const DEFAULT_TEXT_LAYER_OPTIONS: RequiredDeep<
     TextLayerOptions<Record<string, string>>
 > = {
-    justifyContent: 'center',
-    alignItems: 'center',
+    ...DEFAULT_LAYER_OPTIONS,
     font: DEFAULT_FONT,
     color: 'black',
-    replacementFn: (replacement) => replacement,
-    skip: false,
+    replacementFn: replacement => replacement,
     border: {
         width: 0,
         color: 'black',

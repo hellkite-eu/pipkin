@@ -1,6 +1,6 @@
 import { JimpInstance } from 'jimp';
 import { ScaleMode } from './scale';
-import { LayerOptions } from './layer';
+import { DEFAULT_LAYER_OPTIONS, LayerOptions } from './layer';
 import { RequiredDeep } from 'type-fest';
 
 export type ImageType = JimpInstance;
@@ -38,10 +38,8 @@ export type ImageLayerOptions<EntryType extends Record<string, string>> =
 export const DEFAULT_IMAGE_LAYER_OPTIONS: RequiredDeep<
     ImageLayerOptions<Record<string, string>>
 > = {
-    justifyContent: 'center',
-    alignItems: 'center',
+    ...DEFAULT_LAYER_OPTIONS,
     scale: 'none',
-    skip: false,
     assetsPath: '',
 };
 

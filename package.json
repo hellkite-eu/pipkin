@@ -1,6 +1,6 @@
 {
     "name": "@hellkite/pipkin",
-    "version": "0.7.0",
+    "version": "0.8.0",
     "description": "Library for board game card generation",
     "main": "build/src/index.js",
     "types": "build/src/index.d.ts",

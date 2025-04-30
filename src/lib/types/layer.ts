@@ -1,3 +1,4 @@
+import { RequiredDeep } from "type-fest";
 import { JustifyContent, AlignItems } from "./css";
 
 export type LayerOptions<EntryType extends Record<string, string>> = {
@@ -15,4 +16,18 @@ export type LayerOptions<EntryType extends Record<string, string>> = {
      * Decides if a layer should be rendered or not for a certain entry
      */
     skip?: boolean | ((entry: EntryType) => boolean);
+
+    /**
+     * Control if should render bounding box for this layer
+     */
+    renderBoundingBox?: boolean;
+};
+
+export const DEFAULT_LAYER_OPTIONS: RequiredDeep<
+    LayerOptions<Record<string, string>>
+> = {
+    justifyContent: 'center',
+    alignItems: 'center',
+    skip: false,
+    renderBoundingBox: false,
 };

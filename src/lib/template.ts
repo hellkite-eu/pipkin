@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import { parse as parseCsv } from 'papaparse';
-import { Jimp, rgbaToInt } from 'jimp';
+import { Jimp } from 'jimp';
 import camelCase from 'lodash.camelcase';
 import concat from 'lodash.concat';
 import path from 'path';
@@ -37,8 +37,9 @@ import {
     ImageLayerSpecificOptions,
     TextLayerSpecificOptions,
     SCALE_MODE_TO_OBJECT_FIT,
-    ReplacementMap,
     StaticImageRef,
+    TemplateOptions,
+    DEFAULT_TEMPLATE_OPTIONS,
 } from './types';
 import merge from 'lodash.merge';
 import { RequiredDeep } from 'type-fest';
@@ -46,28 +47,7 @@ import { h } from 'virtual-dom';
 import flatten from 'lodash.flatten';
 import { ReplacementBuilder } from './replacement';
 
-type RequiredTemplateOptions = {
-    height: number;
-    width: number;
-    color: number;
-};
-
-type OptionalTemplateOptions = Partial<{
-    defaultFontFamily: string;
-    defaultAssetsPath: string;
-}>;
-
-export type TemplateOptions = RequiredTemplateOptions & OptionalTemplateOptions;
-
-const DEFAULT_TEMPLATE_OPTIONS: RequiredTemplateOptions = {
-    height: 1050,
-    width: 750,
-    color: rgbaToInt(255, 255, 255, 255),
-};
-
-export type LayerFnContext = {
-    debugMode: boolean;
-};
+export type LayerFnContext = {};
 
 export type LayerFn<EntryType> = (
     entry: EntryType,
@@ -81,8 +61,9 @@ export type TemplateLayerFn<EntryType extends Record<string, string>> = (
 export class Template<EntryType extends Record<string, string>> {
     private readonly fonts: Record<string, string> = {};
     private readonly layers: LayerFn<EntryType>[] = [];
+    private readonly debugPoints: Array<number> = [];
     private readonly background: ImageType;
-    private debugMode: boolean = false;
+    private renderBoundingBox?: boolean;
     private defaultFontFamily?: string;
     private defaultAssetsPath?: string;
 
@@ -148,9 +129,14 @@ export class Template<EntryType extends Record<string, string>> {
         packingFn: PackingFn,
         options?: ContainerOptions<EntryType>,
     ): this =>
-        this.layer(async (entry: EntryType, { debugMode }) => {
+        this.layer(async (entry: EntryType) => {
             const mergedOptions: RequiredDeep<ContainerOptions<EntryType>> =
-                merge({}, DEFAULT_CONTAINER_OPTIONS, options);
+                merge(
+                    {},
+                    DEFAULT_CONTAINER_OPTIONS,
+                    { renderBoundingBox: this.renderBoundingBox },
+                    options,
+                );
             if (this.shouldSkipLayerForEntry(entry, mergedOptions)) {
                 return [];
             }
@@ -164,7 +150,7 @@ export class Template<EntryType extends Record<string, string>> {
             const result = await packingFn(box, elements);
 
             // debug mode
-            if (debugMode) {
+            if (mergedOptions.renderBoundingBox) {
                 const debugImage = await placeBoundingBox(box);
                 return [result, debugImage];
             }
@@ -195,12 +181,15 @@ export class Template<EntryType extends Record<string, string>> {
         box: BoundingBox,
         options: ImageLayerOptions<EntryType>,
     ): this =>
-        this.layer(async (entry, { debugMode }) => {
+        this.layer(async entry => {
             const mergedOptions: RequiredDeep<ImageLayerOptions<EntryType>> =
                 merge(
                     {},
                     DEFAULT_IMAGE_LAYER_OPTIONS,
-                    { assetsPath: this.defaultAssetsPath },
+                    {
+                        assetsPath: this.defaultAssetsPath,
+                        renderBoundingBox: this.renderBoundingBox,
+                    },
                     options,
                 );
             if (this.shouldSkipLayerForEntry(entry, mergedOptions)) {
@@ -219,7 +208,7 @@ export class Template<EntryType extends Record<string, string>> {
             });
 
             // debug mode
-            if (debugMode) {
+            if (mergedOptions.renderBoundingBox) {
                 const debugImage = await placeBoundingBox(box);
                 return [result, debugImage];
             }
@@ -237,7 +226,7 @@ export class Template<EntryType extends Record<string, string>> {
         box: BoundingBox,
         options?: TextLayerOptions<EntryType>,
     ): this =>
-        this.layer(async (entry, { debugMode }) => {
+        this.layer(async entry => {
             const mergedOptions = merge(
                 {},
                 DEFAULT_TEXT_LAYER_OPTIONS,
@@ -245,6 +234,7 @@ export class Template<EntryType extends Record<string, string>> {
                     font: {
                         family: this.defaultFontFamily,
                     },
+                    renderBoundingBox: this.renderBoundingBox,
                 } as FontOptions,
                 options,
             );
@@ -260,7 +250,7 @@ export class Template<EntryType extends Record<string, string>> {
             });
 
             // debug mode
-            if (debugMode) {
+            if (mergedOptions.renderBoundingBox) {
                 const debugImage = await placeBoundingBox(box);
                 return [result, debugImage];
             }
@@ -274,38 +264,53 @@ export class Template<EntryType extends Record<string, string>> {
         return this;
     }
 
-    debug(): this {
-        this.debugMode = true;
+    debug = (): this => {
+        this.debugPoints.push(this.layers.length);
         return this;
-    }
+    };
 
     async render(entry: EntryType): Promise<ImageType> {
         const results = await Promise.all(
             this.layers.map(layerFn =>
                 layerFn(entry, {
-                    debugMode: this.debugMode,
+                    renderBoundingBox: this.renderBoundingBox,
                 }),
             ),
         );
-        const document = h('html', [
-            h('head', [
-                h(
-                    'style',
-                    Object.entries(this.fonts)
-                        .map(
-                            ([name, data]) =>
-                                `@font-face {
+        const buildDocument = (children: Array<HyperNode>) =>
+            h('html', [
+                h('head', [
+                    h(
+                        'style',
+                        Object.entries(this.fonts)
+                            .map(
+                                ([name, data]) =>
+                                    `@font-face {
                                         font-family: '${name}';
                                         src: url(data:font/ttf;base64,${data}) format('truetype');
                                     }`,
-                        )
-                        .join('\n'),
-                ),
-            ]),
-            h('body', flatten(results)),
-        ]);
-        const renderedLayers = await htmlToImage(document, this.backgroundSize);
-        return this.background.clone().composite(renderedLayers);
+                            )
+                            .join('\n'),
+                    ),
+                ]),
+                h('body', children),
+            ]);
+
+        // TODO: move it to a proper place
+        for (const debugPoint of this.debugPoints) {
+            const debugRender = await htmlToImage(
+                buildDocument(flatten(results.slice(0, debugPoint))),
+                this.backgroundSize,
+            );
+            const debugImage: ImageType = await this.background.clone().composite(debugRender);
+            await debugImage.write('assets/debug-1.png');
+        }
+
+        const render = await htmlToImage(
+            buildDocument(flatten(results)),
+            this.backgroundSize,
+        );
+        return this.background.clone().composite(render);
     }
 
     async renderAll(

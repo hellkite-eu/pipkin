@@ -2,7 +2,7 @@ import { RequiredDeep } from 'type-fest';
 import { BoundingBox } from './boundingBox';
 import { ImageLayerSpecificOptions, ImageRef, ImageType } from './image';
 import { ScaleMode } from './scale';
-import { LayerOptions } from './layer';
+import { DEFAULT_LAYER_OPTIONS, LayerOptions } from './layer';
 import { HyperNode } from './hypernode';
 import { TextLayerSpecificOptions, TextRef } from './text';
 
@@ -25,11 +25,9 @@ export type ContainerOptions<EntryType extends Record<string, string>> =
 export const DEFAULT_CONTAINER_OPTIONS: RequiredDeep<
     ContainerOptions<Record<string, string>>
 > = {
+    ...DEFAULT_LAYER_OPTIONS,
     gap: 0,
-    justifyContent: 'normal',
-    alignItems: 'center',
     scale: 'none',
-    skip: false,
 };
 
 export type DirectionContainerOptions<
