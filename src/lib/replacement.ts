@@ -4,8 +4,7 @@ import { ReplacementMap, StaticImageRef } from "./types";
  * Represents a replacement map between sets of words and symbols
  */
 export class Replacement {
-
-    private readonly replacementMap: ReplacementMap = {};
+    protected readonly replacementMap: ReplacementMap = {};
 
     replace(words: Array<string>, symbol: StaticImageRef): this {
         words.forEach(word => {
@@ -13,7 +12,9 @@ export class Replacement {
         });
         return this;
     }
+}
 
+export class ReplacementBuilder extends Replacement {
     build(): ReplacementMap {
         return this.replacementMap;
     }

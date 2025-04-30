@@ -1,6 +1,6 @@
 import type { RequiredDeep } from 'type-fest';
 import { LayerOptions } from './layer';
-import { ReplacementMap } from './replacement';
+import { Replacement } from '../replacement';
 
 /**
  * Static text -> `text`
@@ -42,8 +42,9 @@ export type TextLayerOptions<EntryType extends Record<string, string>> =
             color?: string;
         };
 
+        replacementFn?: (replace: Replacement) => Replacement;
+
         // TODO: processor fn
-        replacement?: ReplacementMap;
     };
 
 export const DEFAULT_FONT: Required<FontOptions> = {
@@ -63,7 +64,7 @@ export const DEFAULT_TEXT_LAYER_OPTIONS: RequiredDeep<
     alignItems: 'center',
     font: DEFAULT_FONT,
     color: 'black',
-    replacement: {},
+    replacementFn: (replacement) => replacement,
     skip: false,
     border: {
         width: 0,

@@ -44,6 +44,7 @@ import merge from 'lodash.merge';
 import { RequiredDeep } from 'type-fest';
 import { h } from 'virtual-dom';
 import flatten from 'lodash.flatten';
+import { ReplacementBuilder } from './replacement';
 
 type RequiredTemplateOptions = {
     height: number;
@@ -493,13 +494,13 @@ export class Template<EntryType extends Record<string, string>> {
         options,
     }: {
         text: string;
-        options: RequiredDeep<
-            Omit<TextLayerSpecificOptions<EntryType>, 'replacement'>
-        > &
-            Required<Pick<TextLayerSpecificOptions<EntryType>, 'replacement'>>;
+        options: RequiredDeep<TextLayerSpecificOptions<EntryType>>;
     }): Promise<HyperNode> => {
         let textChildren: Array<string | HyperNode> = [text];
-        for (const [word, imageRef] of Object.entries(options.replacement)) {
+        const replacementBuilder = new ReplacementBuilder();
+        options.replacementFn(replacementBuilder);
+        const replacementMap = replacementBuilder.build();
+        for (const [word, imageRef] of Object.entries(replacementMap)) {
             const regex = new RegExp(word, 'gi');
             const textOptions: RequiredDeep<ImageLayerOptions<EntryType>> =
                 merge(
