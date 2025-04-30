@@ -9,11 +9,9 @@ import {
     gridPackingFn,
     hboxPackingFn,
     htmlToImage,
-    placeImage,
-    placeText,
     vboxPackingFn,
-    prepareText,
-    prepareImage,
+    boundingBoxToPx,
+    toPx,
 } from './utils';
 import {
     DirectionContainerOptions,
@@ -37,6 +35,10 @@ import {
     ElementsFn,
     ElementRef,
     ImageLayerSpecificOptions,
+    TextLayerSpecificOptions,
+    SCALE_MODE_TO_OBJECT_FIT,
+    ReplacementMap,
+    StaticImageRef,
 } from './types';
 import merge from 'lodash.merge';
 import { RequiredDeep } from 'type-fest';
@@ -127,7 +129,7 @@ export class Template<EntryType extends Record<string, string>> {
             const template = fn(this.shadowTemplate());
             const image = await template.render(entry);
             return [
-                await placeImage({
+                await this.placeImage({
                     image,
                     box: {
                         left: 0,
@@ -153,7 +155,11 @@ export class Template<EntryType extends Record<string, string>> {
             }
 
             const elementRefs = await elementsFn(entry);
-            const elements = await Promise.all(elementRefs.map(elementRef => this.elementFromElementRef(entry, elementRef)))
+            const elements = await Promise.all(
+                elementRefs.map(elementRef =>
+                    this.elementFromElementRef(entry, elementRef),
+                ),
+            );
             const result = await packingFn(box, elements);
 
             // debug mode
@@ -203,9 +209,9 @@ export class Template<EntryType extends Record<string, string>> {
             const image = await this.imageFromImageRef(
                 entry,
                 ref,
-                mergedOptions,
+                mergedOptions.assetsPath,
             );
-            const result = await placeImage({
+            const result = await this.placeImage({
                 image,
                 box,
                 options: mergedOptions,
@@ -246,7 +252,7 @@ export class Template<EntryType extends Record<string, string>> {
             }
 
             const text = this.textFromTextRef(entry, ref);
-            const result = await placeText({
+            const result = await this.placeText({
                 text,
                 box,
                 options: mergedOptions,
@@ -295,10 +301,7 @@ export class Template<EntryType extends Record<string, string>> {
                         .join('\n'),
                 ),
             ]),
-            h(
-                'body',
-                flatten(results),
-            ),
+            h('body', flatten(results)),
         ]);
         const renderedLayers = await htmlToImage(document, this.backgroundSize);
         return this.background.clone().composite(renderedLayers);
@@ -363,11 +366,31 @@ export class Template<EntryType extends Record<string, string>> {
     private imageFromImageRef = async (
         entry: EntryType,
         ref: ImageRef<EntryType>,
-        options: RequiredDeep<ImageLayerSpecificOptions<EntryType>>,
+        assetsPath: string,
     ): Promise<ImageType> => {
         const pathSegments = [];
-        if (options.assetsPath) {
-            pathSegments.push(options.assetsPath);
+        if (assetsPath.length) {
+            pathSegments.push(assetsPath);
+        }
+
+        if ('key' in ref) {
+            const fileName = entry[ref.key];
+            return this.loadImage(path.join(...pathSegments, fileName));
+        } else if ('pathFn' in ref) {
+            const fileName = ref.pathFn(entry);
+            return this.loadImage(path.join(...pathSegments, fileName));
+        } else {
+            return this.imageFromStaticImageRef(ref, assetsPath);
+        }
+    };
+
+    private imageFromStaticImageRef = async (
+        ref: StaticImageRef,
+        assetsPath: string,
+    ): Promise<ImageType> => {
+        const pathSegments = [];
+        if (assetsPath.length) {
+            pathSegments.push(assetsPath);
         }
 
         if ('buffer' in ref) {
@@ -376,12 +399,6 @@ export class Template<EntryType extends Record<string, string>> {
             return this.loadImage(path.join(...pathSegments, ref.path));
         } else if ('absolutePath' in ref) {
             return this.loadImage(ref.absolutePath);
-        } else if ('key' in ref) {
-            const fileName = entry[ref.key];
-            return this.loadImage(path.join(...pathSegments, fileName));
-        } else if ('pathFn' in ref) {
-            const fileName = ref.pathFn(entry);
-            return this.loadImage(path.join(...pathSegments, fileName));
         } else {
             throw new Error('Unknown ImageRef variant');
         }
@@ -408,18 +425,22 @@ export class Template<EntryType extends Record<string, string>> {
     ): Promise<HyperNode> => {
         if ('text' in ref) {
             const options = merge({}, DEFAULT_TEXT_LAYER_OPTIONS, ref.options);
-            return prepareText({
+            return this.prepareText({
                 text: this.textFromTextRef(entry, ref.text),
                 options,
             });
         } else if ('image' in ref) {
             const options = merge({}, DEFAULT_IMAGE_LAYER_OPTIONS, ref.options);
-            return prepareImage({
-                image: await this.imageFromImageRef(entry, ref.image, options),
+            return this.prepareImage({
+                image: await this.imageFromImageRef(
+                    entry,
+                    ref.image,
+                    options.assetsPath,
+                ),
                 options,
             });
         } else if ('node' in ref) {
-            return ref.node
+            return ref.node;
         } else {
             throw new Error('Unknown TextRef variant');
         }
@@ -433,5 +454,170 @@ export class Template<EntryType extends Record<string, string>> {
             return options.skip(entry);
         }
         return options.skip ?? false;
+    };
+
+    private placeText = async ({
+        text,
+        box,
+        options,
+    }: {
+        text: string;
+        box: BoundingBox;
+        options: RequiredDeep<TextLayerOptions<EntryType>>;
+    }): Promise<HyperNode> => {
+        return h(
+            'div',
+            {
+                style: {
+                    display: 'flex',
+                    overflow: 'visible',
+                    position: 'absolute',
+
+                    justifyContent: options.justifyContent,
+                    alignItems: options.alignItems,
+
+                    ...boundingBoxToPx(box),
+                },
+            },
+            [
+                await this.prepareText({
+                    text,
+                    options,
+                }),
+            ],
+        );
+    };
+
+    private prepareText = async ({
+        text,
+        options,
+    }: {
+        text: string;
+        options: RequiredDeep<
+            Omit<TextLayerSpecificOptions<EntryType>, 'replacement'>
+        > &
+            Required<Pick<TextLayerSpecificOptions<EntryType>, 'replacement'>>;
+    }): Promise<HyperNode> => {
+        let textChildren: Array<string | HyperNode> = [text];
+        for (const [word, imageRef] of Object.entries(options.replacement)) {
+            const regex = new RegExp(word, 'gi');
+            const textOptions: RequiredDeep<ImageLayerOptions<EntryType>> =
+                merge(
+                    {},
+                    DEFAULT_IMAGE_LAYER_OPTIONS,
+                    { assetsPath: this.defaultAssetsPath },
+                    options,
+                );
+            const image = await this.imageFromStaticImageRef(
+                imageRef,
+                textOptions.assetsPath,
+            );
+            const imageBase64 = await image.getBase64('image/png');
+
+            let tmpChildren: Array<string | HyperNode> = [];
+            for (const textSegment of textChildren) {
+                if (typeof textSegment !== 'string') {
+                    continue;
+                }
+
+                const parts = (textSegment as string).split(regex);
+                for (let index = 0; index < parts.length; index++) {
+                    if (index > 0) {
+                        tmpChildren.push(
+                            h(
+                                'img',
+                                {
+                                    style: {
+                                        display: 'inline',
+                                        verticalAlign: 'middle',
+                                        height: toPx(options.font.size),
+                                        width: 'auto',
+                                    },
+                                    src: imageBase64,
+                                },
+                                [],
+                            ),
+                        );
+                    }
+                    tmpChildren.push(parts[index]);
+                }
+            }
+
+            textChildren = tmpChildren;
+        }
+
+        return h(
+            'div',
+            {
+                style: {
+                    overflow: 'visible',
+                    overflowWrap: 'word-wrap',
+                    whiteSpace: 'normal',
+
+                    color: options.color,
+                    fontFamily: options.font.family,
+                    fontSize: options.font.size,
+                    fontStyle: options.font.italic ? 'italic' : undefined,
+                    fontWeight: options.font.bold ? 'bold' : undefined,
+
+                    '-webkit-text-stroke': `${options.border.width}px ${options.border.color}`,
+                },
+            },
+            textChildren,
+        );
+    };
+
+    private placeImage = async ({
+        image,
+        box,
+        options,
+    }: {
+        image: ImageType;
+        box: BoundingBox;
+        options: RequiredDeep<ImageLayerOptions<EntryType>>;
+    }): Promise<HyperNode> => {
+        return h(
+            'div',
+            {
+                style: {
+                    display: 'flex',
+                    position: 'absolute',
+                    scale: 1,
+
+                    justifyContent: options.justifyContent,
+                    alignItems: options.alignItems,
+
+                    ...boundingBoxToPx(box),
+                },
+            },
+            [await this.prepareImage({ image, options })],
+        );
+    };
+
+    private prepareImage = async ({
+        image,
+        options,
+    }: {
+        image: ImageType;
+        options: RequiredDeep<ImageLayerSpecificOptions<EntryType>>;
+    }): Promise<HyperNode> => {
+        const imageBase64 = await image.getBase64('image/png');
+        const objectFit = SCALE_MODE_TO_OBJECT_FIT[options.scale];
+
+        return h(
+            'img',
+            {
+                style: {
+                    objectFit,
+                    flex: '1 1 auto',
+                    minWidth: 0,
+                    minHeight: 0,
+                    maxWidth: '100%',
+                    maxHeight: '100%',
+                },
+                src: imageBase64,
+            },
+            [],
+        );
     };
 }

@@ -1,3 +1,3 @@
-import { ImageType } from './image';
+import { StaticImageRef } from './image';
 
-export type ReplacementMap = Record<string, ImageType>;
+export type ReplacementMap = Record<string, StaticImageRef>;

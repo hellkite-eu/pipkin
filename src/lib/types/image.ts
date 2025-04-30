@@ -10,11 +10,14 @@ export type ImageType = JimpInstance;
  * Dynamic images -> `key`, `pathFn`
  */
 export type ImageRef<EntryType extends Record<string, string>> =
-    | { buffer: Buffer }
-    | { path: string }
-    | { absolutePath: string }
+    | StaticImageRef
     | { key: keyof EntryType }
     | { pathFn: (entry: EntryType) => string };
+
+export type StaticImageRef =
+    | { buffer: Buffer }
+    | { path: string }
+    | { absolutePath: string };
 
 export type ImageLayerOptions<EntryType extends Record<string, string>> =
     LayerOptions<EntryType> & {
@@ -32,15 +35,19 @@ export type ImageLayerOptions<EntryType extends Record<string, string>> =
         // processorFn?: (entry: EntryType, image: ImageType) => Promise<ImageType>;
     };
 
-export const DEFAULT_IMAGE_LAYER_OPTIONS: RequiredDeep<ImageLayerOptions<Record<string, string>>> = {
+export const DEFAULT_IMAGE_LAYER_OPTIONS: RequiredDeep<
+    ImageLayerOptions<Record<string, string>>
+> = {
     justifyContent: 'center',
     alignItems: 'center',
     scale: 'none',
     skip: false,
-    assetsPath: ''
+    assetsPath: '',
 };
 
-export type ImageLayerSpecificOptions<EntryType extends Record<string, string>> = Omit<ImageLayerOptions<EntryType>, keyof LayerOptions<EntryType>>;
+export type ImageLayerSpecificOptions<
+    EntryType extends Record<string, string>,
+> = Omit<ImageLayerOptions<EntryType>, keyof LayerOptions<EntryType>>;
 
 export type Alignment = 'start' | 'center' | 'end';
 
