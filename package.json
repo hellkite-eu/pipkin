@@ -1,6 +1,6 @@
 {
     "name": "@hellkite/pipkin",
-    "version": "0.8.0",
+    "version": "0.8.1",
     "description": "Library for board game card generation",
     "main": "build/src/index.js",
     "types": "build/src/index.d.ts",
@@ -24,6 +24,7 @@
         "lodash.merge": "^4.6.2",
         "node-html-to-image": "^5.0.0",
         "papaparse": "^5.5.2",
+        "pdf-lib": "^1.17.1",
         "ts-node": "^10.9.2",
         "virtual-dom": "^2.1.1"
     },

@@ -6,7 +6,7 @@
 - [ ] Draw geometry
 - [ ] Noise/texture overlays
 - [x] Text border
-- [ ] Bundle to PDFs
+- [x] Bundle to PDFs
 
 ### Bugfixes
 - [x] Broken custom fonts

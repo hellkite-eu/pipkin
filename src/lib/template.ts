@@ -61,7 +61,7 @@ export type TemplateLayerFn<EntryType extends Record<string, string>> = (
 export class Template<EntryType extends Record<string, string>> {
     private readonly fonts: Record<string, string> = {};
     private readonly layers: LayerFn<EntryType>[] = [];
-    private readonly debugPoints: Array<number> = [];
+    private readonly debugPoints: Array<DebugPoint> = [];
     private readonly background: ImageType;
     private renderBoundingBox?: boolean;
     private defaultFontFamily?: string;
@@ -265,7 +265,9 @@ export class Template<EntryType extends Record<string, string>> {
     }
 
     debug = (): this => {
-        this.debugPoints.push(this.layers.length);
+        this.debugPoints.push({
+            index: this.layers.length,
+        });
         return this;
     };
 
@@ -299,10 +301,12 @@ export class Template<EntryType extends Record<string, string>> {
         // TODO: move it to a proper place
         for (const debugPoint of this.debugPoints) {
             const debugRender = await htmlToImage(
-                buildDocument(flatten(results.slice(0, debugPoint))),
+                buildDocument(flatten(results.slice(0, debugPoint.index))),
                 this.backgroundSize,
             );
-            const debugImage: ImageType = await this.background.clone().composite(debugRender);
+            const debugImage: ImageType = await this.background
+                .clone()
+                .composite(debugRender);
             await debugImage.write('assets/debug-1.png');
         }
 
@@ -627,3 +631,7 @@ export class Template<EntryType extends Record<string, string>> {
         );
     };
 }
+
+type DebugPoint = {
+    index: number;
+};
