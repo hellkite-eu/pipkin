@@ -108,7 +108,7 @@ export class Bundler {
                     colIndex * cardSize.width;
                 const offsetY =
                     this.getPadding('top') +
-                    rowIndex* this.getGap('rows') +
+                    rowIndex * this.getGap('rows') +
                     rowIndex * cardSize.height;
                 page.composite(image, offsetX, offsetY);
             }

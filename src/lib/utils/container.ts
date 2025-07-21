@@ -4,7 +4,6 @@ import {
     DirectionContainerOptions,
     PackingFn,
     BoundingBox,
-    SCALE_MODE_TO_OBJECT_FIT,
     GridContainerOptions,
     DEFAULT_GRID_CONTAINER_OPTIONS,
     HyperNode,

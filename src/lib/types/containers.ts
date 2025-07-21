@@ -1,6 +1,6 @@
 import { RequiredDeep } from 'type-fest';
 import { BoundingBox } from './boundingBox';
-import { ImageLayerSpecificOptions, ImageRef, ImageType } from './image';
+import { ImageLayerSpecificOptions, ImageRef } from './image';
 import { ScaleMode } from './scale';
 import { DEFAULT_LAYER_OPTIONS, LayerOptions } from './layer';
 import { HyperNode } from './hypernode';

@@ -40,32 +40,35 @@ import {
     StaticImageRef,
     TemplateOptions,
     DEFAULT_TEMPLATE_OPTIONS,
+    LayerFn,
+    ReplacementMap,
 } from './types';
 import merge from 'lodash.merge';
 import { RequiredDeep } from 'type-fest';
 import { h } from 'virtual-dom';
 import flatten from 'lodash.flatten';
-import { ReplacementBuilder } from './replacement';
-
-export type LayerFnContext = {};
-
-export type LayerFn<EntryType> = (
-    entry: EntryType,
-    context: LayerFnContext,
-) => Promise<Array<HyperNode>>;
+import { Bundler } from './bundler';
 
 export type TemplateLayerFn<EntryType extends Record<string, string>> = (
     template: Template<EntryType>,
 ) => Template<EntryType>;
 
 export class Template<EntryType extends Record<string, string>> {
-    private readonly fonts: Record<string, string> = {};
-    private readonly layers: LayerFn<EntryType>[] = [];
-    private readonly debugPoints: Array<DebugPoint> = [];
+    /**
+     * Template data
+     */
     private readonly background: ImageType;
+    private readonly layers: LayerFn<EntryType>[] = [];
+    private readonly fonts: Record<string, string> = {};
     private renderBoundingBox?: boolean;
     private defaultFontFamily?: string;
     private defaultAssetsPath?: string;
+
+    /**
+     * Render data
+     */
+    private readonly debugPoints: Array<DebugPoint> = [];
+    private bundler?: Bundler;
 
     // disallow constructor initialization
     private constructor(options: TemplateOptions) {
@@ -284,6 +287,7 @@ export class Template<EntryType extends Record<string, string>> {
                 h('head', [
                     h(
                         'style',
+                        // load fonts
                         Object.entries(this.fonts)
                             .map(
                                 ([name, data]) =>
@@ -295,7 +299,26 @@ export class Template<EntryType extends Record<string, string>> {
                             .join('\n'),
                     ),
                 ]),
-                h('body', children),
+                // fix chromium headless padding issue
+                h(
+                    'body',
+                    {
+                        style: {
+                            margin: 0,
+                        },
+                    },
+                    [
+                        h(
+                            'div',
+                            {
+                                style: {
+                                    marginLeft: '-8px',
+                                },
+                            },
+                            children,
+                        ),
+                    ],
+                ),
             ]);
 
         // TODO: move it to a proper place
@@ -524,7 +547,7 @@ export class Template<EntryType extends Record<string, string>> {
             );
             const imageBase64 = await image.getBase64('image/png');
 
-            let tmpChildren: Array<string | HyperNode> = [];
+            const tmpChildren: Array<string | HyperNode> = [];
             for (const textSegment of textChildren) {
                 if (typeof textSegment !== 'string') {
                     continue;
@@ -630,6 +653,26 @@ export class Template<EntryType extends Record<string, string>> {
             [],
         );
     };
+}
+
+/**
+ * Represents a replacement map between sets of words and symbols
+ */
+export class Replacement {
+    protected readonly replacementMap: ReplacementMap = {};
+
+    replace(words: Array<string>, symbol: StaticImageRef): this {
+        words.forEach(word => {
+            this.replacementMap[word] = symbol;
+        });
+        return this;
+    }
+}
+
+class ReplacementBuilder extends Replacement {
+    build(): ReplacementMap {
+        return this.replacementMap;
+    }
 }
 
 type DebugPoint = {

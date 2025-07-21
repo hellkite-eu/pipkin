@@ -1,4 +1,4 @@
-import { rgbaToInt } from "jimp";
+import { rgbaToInt } from 'jimp';
 
 type RequiredTemplateOptions = {
     height: number;

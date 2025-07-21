@@ -1,6 +1,6 @@
 import type { RequiredDeep } from 'type-fest';
 import { DEFAULT_LAYER_OPTIONS, LayerOptions } from './layer';
-import { Replacement } from '../replacement';
+import { Replacement } from '../template';
 
 /**
  * Static text -> `text`

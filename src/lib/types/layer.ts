@@ -1,5 +1,6 @@
-import { RequiredDeep } from "type-fest";
-import { JustifyContent, AlignItems } from "./css";
+import { RequiredDeep } from 'type-fest';
+import { JustifyContent, AlignItems } from './css';
+import { HyperNode } from './hypernode';
 
 export type LayerOptions<EntryType extends Record<string, string>> = {
     /**
@@ -31,3 +32,10 @@ export const DEFAULT_LAYER_OPTIONS: RequiredDeep<
     skip: false,
     renderBoundingBox: false,
 };
+
+export type LayerFnContext = {};
+
+export type LayerFn<EntryType> = (
+    entry: EntryType,
+    context: LayerFnContext,
+) => Promise<Array<HyperNode>>;

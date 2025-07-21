@@ -1,8 +1,6 @@
-
-
 export type RenderOptions<EntryType extends Record<string, string>> = {
     duplication?: DuplicationOptions<EntryType>;
-}
+};
 
 export type DuplicationOptions<EntryType extends Record<string, string>> = {
     /**
@@ -20,4 +18,4 @@ export type DuplicationOptions<EntryType extends Record<string, string>> = {
      * default: 1
      */
     default?: number;
-}
+};
