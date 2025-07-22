@@ -2,17 +2,14 @@ import { Jimp } from 'jimp';
 import { Size, ImageType } from './types';
 
 type RequiredBundlerOptions = {
-    size: Size;
     rows: number;
     cols: number;
 };
 
+// TODO: move
 const PAGE_SIZE_300_PPI: Size = { height: 2480, width: 3508 };
 
-const DEFAULT_PAGE_SIZE: Size = PAGE_SIZE_300_PPI;
-
 const DEFAULT_BUNDLER_OPTIONS: RequiredBundlerOptions = {
-    size: DEFAULT_PAGE_SIZE,
     rows: 2,
     cols: 4,
 };
@@ -64,33 +61,21 @@ export class Bundler {
         const cardsPerPage = this.options.cols * this.options.rows;
         const results: Array<ImageType> = [];
         for (let offset = 0; offset <= images.length; offset += cardsPerPage) {
-            results.push(
-                this.renderPage(images.slice(offset, offset + cardsPerPage)),
-            );
+            results.push(this.renderPage(images, offset));
         }
         return results;
     }
 
-    private renderPage(images: Array<ImageType>): ImageType {
+    private renderPage(images: Array<ImageType>, offset: number): ImageType {
+        const { pageSize, cardSize } = this.computeCardAndPageSize(
+            images,
+            offset,
+        );
         const page = new Jimp({
-            height: this.options.size.height,
-            width: this.options.size.width,
+            height: pageSize.height,
+            width: pageSize.width,
             color: this.options.bgColor ?? 0xffffffff,
         });
-        const cardSize: Size = {
-            width:
-                (page.width -
-                    this.getPadding('left') -
-                    this.getPadding('right') -
-                    this.getGap('cols')) /
-                this.options.cols,
-            height:
-                (page.height -
-                    this.getPadding('top') -
-                    this.getPadding('bottom') -
-                    this.getGap('rows')) /
-                this.options.rows,
-        };
         for (let rowIndex = 0; rowIndex < this.options.rows; rowIndex++) {
             for (let colIndex = 0; colIndex < this.options.cols; colIndex++) {
                 const imageIndex = rowIndex * this.options.cols + colIndex;
@@ -98,10 +83,6 @@ export class Bundler {
                 if (!image) {
                     continue;
                 }
-                image.scaleToFit({
-                    w: cardSize.width,
-                    h: cardSize.height,
-                });
                 const offsetX =
                     this.getPadding('left') +
                     colIndex * this.getGap('cols') +
@@ -114,6 +95,37 @@ export class Bundler {
             }
         }
         return page;
+    }
+
+    private computeCardAndPageSize(
+        images: Array<ImageType>,
+        offset: number,
+    ): { cardSize: Size; pageSize: Size } {
+        const pageSize: Size = { height: 0, width: 0 };
+        const cardSize: Size = { height: 0, width: 0 };
+        for (let rowIndex = 0; rowIndex < this.options.rows; rowIndex++) {
+            for (let colIndex = 0; colIndex < this.options.cols; colIndex++) {
+                const imageIndex =
+                    offset + rowIndex * this.options.cols + colIndex;
+                const image = images[imageIndex];
+                if (!image) {
+                    continue;
+                }
+                cardSize.height = Math.max(cardSize.height, image.height);
+                cardSize.width = Math.max(cardSize.width, image.width);
+            }
+        }
+        pageSize.height +=
+            this.getPadding('top') +
+            cardSize.height * this.options.rows +
+            this.getGap('rows') * (this.options.rows - 1) +
+            this.getPadding('bottom');
+        pageSize.width +=
+            this.getPadding('left') +
+            cardSize.width * this.options.cols +
+            this.getGap('cols') * (this.options.cols - 1) +
+            this.getPadding('right');
+        return { pageSize, cardSize };
     }
 
     private getGap(direction: keyof Direction2): number {
