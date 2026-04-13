@@ -585,7 +585,7 @@ export class Template<EntryType extends Record<string, string>> {
                 style: {
                     overflow: 'visible',
                     overflowWrap: 'word-wrap',
-                    whiteSpace: 'pre',
+                    whiteSpace: 'pre-line',
 
                     color: options.color,
                     fontFamily: options.font.family,
